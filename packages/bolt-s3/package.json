@@ -1,0 +1,19 @@
+{
+  "name": "@k11i/bolt-s3",
+  "version": "1.0.0",
+  "description": "Bolt for JavaScript Installation Store Extension - S3",
+  "author": {
+    "name": "KOMIYA Atsushi",
+    "url": "https://github.com/komiya-atsushi"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/komiya-atsushi/slack-bolt-s3.git"
+  },
+  "bugs": {
+    "url": "https://github.com/komiya-atsushi/slack-bolt-s3/issues"
+  },
+  "devDependencies": {},
+  "scripts": {}
+}
