@@ -16,6 +16,8 @@
   },
   "scripts": {},
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.481.0"
+    "@aws-sdk/client-s3": "^3.481.0",
+    "@slack/logger": "^4.0.0",
+    "@slack/oauth": "^2.6.1"
   }
 }
