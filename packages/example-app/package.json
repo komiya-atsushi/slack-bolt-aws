@@ -1,0 +1,12 @@
+{
+  "name": "example-app",
+  "version": "1.0.0",
+  "description": "An example Slack application that uses bolt-s3",
+  "author": {
+    "name": "KOMIYA Atsushi",
+    "url": "https://github.com/komiya-atsushi"
+  },
+  "license": "MIT",
+  "scripts": {},
+  "devDependencies": {}
+}
