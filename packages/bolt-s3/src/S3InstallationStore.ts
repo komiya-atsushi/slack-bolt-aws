@@ -26,7 +26,7 @@ class S3Client {
       Body: data,
     });
 
-    logger?.debug(`S3 putObject response: ${response}`);
+    logger?.debug(`S3 putObject response: ${JSON.stringify(response)}`);
   }
 
   async fetch(key: string, logger?: Logger): Promise<Buffer | undefined> {
@@ -35,7 +35,7 @@ class S3Client {
         Bucket: this.bucketName,
         Key: key,
       });
-      logger?.debug(`S3 getObject response: ${response}`);
+      logger?.debug(`S3 getObject response: ${JSON.stringify(response)}`);
 
       const body = response.Body;
       if (body === undefined) {
@@ -92,8 +92,6 @@ class S3Client {
   }
 }
 
-const ONE_SECOND_IN_MICROSECONDS = BigInt('1000000');
-
 export class S3InstallationStore implements InstallationStore {
   private readonly s3Client: Promise<S3Client>;
   private readonly installationCodec: InstallationCodec;
@@ -133,10 +131,7 @@ export class S3InstallationStore implements InstallationStore {
   }
 
   private createHistoryVersion(): string {
-    const currentMicroseconds = process.hrtime.bigint();
-    return `${currentMicroseconds / ONE_SECOND_IN_MICROSECONDS}.${
-      currentMicroseconds % ONE_SECOND_IN_MICROSECONDS
-    }`;
+    return Date.now().toString();
   }
 
   private encodeInstallation(installation: Installation): Buffer {
