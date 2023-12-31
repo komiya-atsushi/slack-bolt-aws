@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Example Slack application for bolt-s3
+
+Parameters:
+  ClientId:
+    Type: String
+  ClientSecret:
+    Type: String
+  SigningSecret:
+    Type: String
+  StateSecret:
+    Type: String
+  S3Region:
+    Type: String
+  InstallationEncryptionPassword:
+    Type: String
+  InstallationEncryptionSalt:
+    Type: String
+
+Globals:
+  Function:
+    Timeout: 3
+    Environment:
+      Variables:
+        SLACK_CLIENT_ID: !Ref ClientId
+        SLACK_CLIENT_SECRET: !Ref ClientSecret
+        SLACK_SIGNING_SECRET: !Ref SigningSecret
+        SLACK_STATE_SECRET: !Ref StateSecret
+        S3_REGION: !Ref S3Region
+        S3_INSTALLATION_STORE_ENCRYPTION_PASSWORD: !Ref InstallationEncryptionPassword
+        S3_INSTALLATION_STORE_ENCRYPTION_SALT: !Ref InstallationEncryptionSalt
+
+Resources:
+  S3InstallationStore:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: bolt-s3-example-app
+
+  SlackEventReceiver:
+    Type: AWS::Serverless::Function
+    Properties:
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref S3InstallationStore
+      Events:
+        SlackEvent:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /slack/events
+        SlackInstall:
+          Type: Api
+          Properties:
+            Method: get
+            Path: /slack/install
+        SlackOAuthRedirect:
+          Type: Api
+          Properties:
+            Method: get
+            Path: /slack/oauth_redirect
+      Timeout: 600
+      PackageType: Image
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref S3InstallationStore
+    Metadata:
+      DockerTag: nodejs20.x-v1
+      DockerContext: ../../
+      Dockerfile: packages/example-app/Dockerfile
+
+Outputs:
+  SlackEventsApiEndpoint:
+    Description: "Set this URL as Request URL in Events Subscriptions."
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/events
+  SlackOAuthRedirectEndpoint:
+    Description: "Set this URL as Redirect URL in OAuth & Permissions."
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/oauth_redirect
+  SlackInstallEndpoint:
+    Description: "Open this URL to install and/or authorize Slack app."
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/install
