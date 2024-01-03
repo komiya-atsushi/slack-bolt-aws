@@ -1,7 +1,7 @@
 {
   "name": "@k11i/bolt-s3",
   "version": "1.0.0",
-  "description": "Bolt for JavaScript Installation Store Extension - S3",
+  "description": "S3-backed InstallationStore implementation for bolt-js",
   "author": {
     "name": "KOMIYA Atsushi",
     "url": "https://github.com/komiya-atsushi"
