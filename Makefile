@@ -4,4 +4,8 @@ test:
 	npm run test
 	docker compose down
 
+publish: test
+	cp README.md LICENSE packages/bolt-s3/
+	npm -w packages/bolt-s3 publish --dry-run
+
 .PHONY: test

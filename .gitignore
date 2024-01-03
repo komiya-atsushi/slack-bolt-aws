@@ -5,3 +5,5 @@ coverage/
 .aws-sam/
 .envrc
 .nvmrc
+packages/bolt-s3/README.md
+packages/bolt-s3/LICENSE
