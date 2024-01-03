@@ -15,6 +15,7 @@
     "url": "https://github.com/komiya-atsushi/slack-bolt-s3/issues"
   },
   "scripts": {
+    "test": "jest --verbose --coverage",
     "lint": "gts lint",
     "clean": "gts clean",
     "compile": "tsc",
