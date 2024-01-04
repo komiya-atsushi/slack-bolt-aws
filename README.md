@@ -1,5 +1,8 @@
 # Bolt for JavaScript: S3 InstallationStore
 
+[![npm version](https://badge.fury.io/js/@k11i%2Fbolt-s3.svg)](https://badge.fury.io/js/@k11i%2Fbolt-s3)
+[![codecov](https://codecov.io/gh/komiya-atsushi/slack-bolt-s3/graph/badge.svg?token=TXWAYL4LMZ)](https://codecov.io/gh/komiya-atsushi/slack-bolt-s3)
+
 This package provides an S3-backed InstallationStore implementation with a few additional functionalities.
 
 ## Features
@@ -88,7 +91,7 @@ app.event('app_uninstalled', async ({context, logger}) => {
 
 (async () => {
   await app.start();
-  logger.info('⚡️ Bolt app is running!');
+  console.log('⚡️ Bolt app is running!');
 })();
 ```
 
