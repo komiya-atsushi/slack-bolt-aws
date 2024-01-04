@@ -11,5 +11,4 @@ jobs:
         with:
           node-version: '18.x'
       - run: npm ci
-      - run: npm -w packages/bolt-s3 ci
       - run: make test
