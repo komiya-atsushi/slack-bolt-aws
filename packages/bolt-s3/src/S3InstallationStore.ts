@@ -46,7 +46,8 @@ class S3Client {
       return Buffer.from(array);
     } catch (e) {
       logger?.warn(
-        `Failed to get installation: bucket = ${this.bucketName}, key = ${key}`
+        `Failed to get installation: bucket = ${this.bucketName}, key = ${key}:`,
+        e
       );
       return undefined;
     }
