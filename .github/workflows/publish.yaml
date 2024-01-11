@@ -31,9 +31,15 @@ jobs:
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
       - name: Bump version
         run: npm -w packages/bolt-s3 version ${{ inputs.target_element }}
+      - name: Get version string
+        id: get-version-string
+        run: echo "version=$(jq -r .version packages/bolt-s3/package.json)" >> "$GITHUB_OUTPUT"
+      - run: git add package-lock.json packages/bolt-s3/package.json
+      - run: git commit -m "v${{ steps.get-version-string.outputs.version }}"
+      - run: git tag "v${{ steps.get-version-string.outputs.version }}"
       - run: npm ci
       - run: make publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: git push
-      - run: git push --tags
+      - run: git push "v${{ steps.get-version-string.outputs.version }}"
