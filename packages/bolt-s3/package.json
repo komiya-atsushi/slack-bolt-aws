@@ -1,6 +1,6 @@
 {
   "name": "@k11i/bolt-s3",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "S3-backed InstallationStore implementation for bolt-js",
   "author": {
     "name": "KOMIYA Atsushi",
