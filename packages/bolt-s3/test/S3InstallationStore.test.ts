@@ -1,4 +1,5 @@
 import {Installation} from '@slack/oauth';
+import {ConsoleLogger, LogLevel} from '@slack/logger';
 import {
   DeleteObjectsCommandInput,
   ListObjectsV2CommandInput,
@@ -15,6 +16,9 @@ const s3Client = new S3({
     secretAccessKey: 'test',
   },
 });
+
+const logger = new ConsoleLogger();
+logger.setLevel(LogLevel.DEBUG);
 
 const installationCodec = BinaryInstallationCodec.createDefault(
   'test-password',
@@ -113,7 +117,7 @@ describe('S3InstallationStore', () => {
 
     describe('storeInstallation()', () => {
       test('can store installations with histories', async () => {
-        await sut.storeInstallation(installation);
+        await sut.storeInstallation(installation, logger);
 
         const keys = await listObjectKeys(`${slackClientId}/`);
 
@@ -134,8 +138,8 @@ describe('S3InstallationStore', () => {
 
       test('can update installer-latest', async () => {
         const anotherUserId = 'another-user-id';
-        await sut.storeInstallation(installation);
-        await sut.storeInstallation(anotherInstallation);
+        await sut.storeInstallation(installation, logger);
+        await sut.storeInstallation(anotherInstallation, logger);
 
         const data = await getObject(
           `${slackClientId}/none-${teamId}/installer-latest`
@@ -150,33 +154,42 @@ describe('S3InstallationStore', () => {
 
     describe('fetchInstallation()', () => {
       test('can fetch installer-latest', async () => {
-        await sut.storeInstallation(installation);
+        await sut.storeInstallation(installation, logger);
 
-        const fetched = await sut.fetchInstallation({
-          enterpriseId: undefined,
-          teamId,
-          isEnterpriseInstall: false,
-        });
+        const fetched = await sut.fetchInstallation(
+          {
+            enterpriseId: undefined,
+            teamId,
+            isEnterpriseInstall: false,
+          },
+          logger
+        );
 
         expect(fetched).toEqual(installation);
       });
 
       test('can fetch installer-USERID-latest', async () => {
-        await sut.storeInstallation(installation);
-        await sut.storeInstallation(anotherInstallation);
+        await sut.storeInstallation(installation, logger);
+        await sut.storeInstallation(anotherInstallation, logger);
 
-        const fetched = await sut.fetchInstallation({
-          enterpriseId: undefined,
-          teamId,
-          userId,
-          isEnterpriseInstall: false,
-        });
-        const fetchedAnotherUser = await sut.fetchInstallation({
-          enterpriseId: undefined,
-          teamId,
-          userId: anotherUserId,
-          isEnterpriseInstall: false,
-        });
+        const fetched = await sut.fetchInstallation(
+          {
+            enterpriseId: undefined,
+            teamId,
+            userId,
+            isEnterpriseInstall: false,
+          },
+          logger
+        );
+        const fetchedAnotherUser = await sut.fetchInstallation(
+          {
+            enterpriseId: undefined,
+            teamId,
+            userId: anotherUserId,
+            isEnterpriseInstall: false,
+          },
+          logger
+        );
 
         expect(fetched).toEqual(installation);
         expect(fetchedAnotherUser).toHaveProperty('user.id', anotherUserId);
@@ -185,27 +198,33 @@ describe('S3InstallationStore', () => {
       test('throws error if installation does not exist', async () => {
         await expect(
           async () =>
-            await sut.fetchInstallation({
-              enterpriseId: undefined,
-              teamId: 'team-id-does-not-exist',
-              userId: 'user-id-does-not-exist',
-              isEnterpriseInstall: false,
-            })
+            await sut.fetchInstallation(
+              {
+                enterpriseId: undefined,
+                teamId: 'team-id-does-not-exist',
+                userId: 'user-id-does-not-exist',
+                isEnterpriseInstall: false,
+              },
+              logger
+            )
         ).rejects.toThrow();
       });
     });
 
     describe('deleteInstallation()', () => {
       test('can delete latest installation and histories by userId', async () => {
-        await sut.storeInstallation(installation);
-        await sut.storeInstallation(anotherInstallation);
+        await sut.storeInstallation(installation, logger);
+        await sut.storeInstallation(anotherInstallation, logger);
 
-        await sut.deleteInstallation({
-          enterpriseId: undefined,
-          teamId,
-          userId,
-          isEnterpriseInstall: false,
-        });
+        await sut.deleteInstallation(
+          {
+            enterpriseId: undefined,
+            teamId,
+            userId,
+            isEnterpriseInstall: false,
+          },
+          logger
+        );
 
         const keys = await listObjectKeys(`${slackClientId}/`);
 
@@ -234,13 +253,16 @@ describe('S3InstallationStore', () => {
       });
 
       test('can delete all installations by team', async () => {
-        await sut.storeInstallation(installation);
+        await sut.storeInstallation(installation, logger);
 
-        await sut.deleteInstallation({
-          enterpriseId: undefined,
-          teamId,
-          isEnterpriseInstall: false,
-        });
+        await sut.deleteInstallation(
+          {
+            enterpriseId: undefined,
+            teamId,
+            isEnterpriseInstall: false,
+          },
+          logger
+        );
 
         const keys = await listObjectKeys(`${slackClientId}/`);
 

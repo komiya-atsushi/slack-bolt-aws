@@ -26,7 +26,9 @@ class S3Client {
       Body: data,
     });
 
-    logger?.debug(`S3 putObject response: ${JSON.stringify(response)}`);
+    logger?.debug(
+      `S3 putObject response: ${JSON.stringify(response.$metadata)}`
+    );
   }
 
   async fetch(key: string, logger?: Logger): Promise<Buffer | undefined> {
@@ -35,7 +37,9 @@ class S3Client {
         Bucket: this.bucketName,
         Key: key,
       });
-      logger?.debug(`S3 getObject response: ${JSON.stringify(response)}`);
+      logger?.debug(
+        `S3 getObject response: ${JSON.stringify(response.$metadata)}`
+      );
 
       const body = response.Body;
       if (body === undefined) {
