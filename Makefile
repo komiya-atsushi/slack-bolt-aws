@@ -6,6 +6,6 @@ test:
 
 publish: test
 	cp README.md LICENSE packages/bolt-s3/
-	npm -w packages/bolt-s3 publish --access public
+	npm -w packages/bolt-s3 publish --provenance --access public
 
 .PHONY: test
