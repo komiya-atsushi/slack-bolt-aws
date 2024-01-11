@@ -42,4 +42,4 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: git push
-      - run: git push "v${{ steps.get-version-string.outputs.version }}"
+      - run: git push origin "v${{ steps.get-version-string.outputs.version }}"
