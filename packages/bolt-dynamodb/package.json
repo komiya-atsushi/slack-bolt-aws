@@ -27,5 +27,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.490.0"
   }
 }
