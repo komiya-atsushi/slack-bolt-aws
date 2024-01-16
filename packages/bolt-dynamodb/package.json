@@ -1,0 +1,31 @@
+{
+  "name": "@k11i/bolt-dynamodb",
+  "version": "1.0.3",
+  "description": "DynamoDB-backed InstallationStore implementation for bolt-js",
+  "author": {
+    "name": "KOMIYA Atsushi",
+    "url": "https://github.com/komiya-atsushi"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/komiya-atsushi/slack-bolt-s3.git"
+  },
+  "bugs": {
+    "url": "https://github.com/komiya-atsushi/slack-bolt-s3/issues"
+  },
+  "keywords": [
+    "slack",
+    "dynamodb"
+  ],
+  "main": "build/src/index.js",
+  "files": [
+    "build/src/**/*.{js,d.ts}"
+  ],
+  "scripts": {
+    "compile": "tsc"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
