@@ -29,6 +29,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.490.0"
+    "@aws-sdk/client-dynamodb": "^3.490.0",
+    "@slack/logger": "^4.0.0",
+    "@slack/oauth": "^2.6.2"
   }
 }
