@@ -174,6 +174,13 @@ export class S3InstallationStore implements InstallationStore {
     await Promise.all(keys.map(key => s3Client.store(key, data, logger)));
   }
 
+  /**
+   * Fetches the installation based on the given query parameters from S3 bucket.
+   *
+   * If query.userId is not specified, the returned installation will not include a user token.
+   * Likewise, if no S3 object of installation matching query.userId is found,
+   * the returned installation will also not include a user token.
+   */
   async fetchInstallation(
     query: InstallationQuery<boolean>,
     logger?: Logger
@@ -197,6 +204,11 @@ export class S3InstallationStore implements InstallationStore {
     if (app !== undefined) {
       if (user !== undefined) {
         app.user = user.user;
+      } else {
+        delete app.user.token;
+        delete app.user.refreshToken;
+        delete app.user.expiresAt;
+        delete app.user.scopes;
       }
       return app;
     }

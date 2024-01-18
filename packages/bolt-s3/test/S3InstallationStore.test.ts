@@ -153,7 +153,7 @@ describe('S3InstallationStore', () => {
     });
 
     describe('fetchInstallation()', () => {
-      test('can fetch installer-latest', async () => {
+      test('can fetch installation which only contains bot token if userId is not specified', async () => {
         await sut.storeInstallation(installation, logger);
 
         const fetched = await sut.fetchInstallation(
@@ -165,7 +165,27 @@ describe('S3InstallationStore', () => {
           logger
         );
 
-        expect(fetched).toEqual(installation);
+        const {user: _ignore1, ...fetchedWithoutUser} = fetched;
+        const {user: _ignore2, ...expectedWithoutUser} = installation;
+
+        expect(fetchedWithoutUser).toEqual(expectedWithoutUser);
+      });
+
+      test('can fetch installation which only contains bot token if installation object is not found for the user', async () => {
+        await sut.storeInstallation(installation, logger);
+
+        const fetched = await sut.fetchInstallation({
+          enterpriseId: undefined,
+          teamId,
+          userId: anotherUserId,
+          isEnterpriseInstall: false,
+        });
+
+        expect(fetched).not.toEqual(installation);
+        expect(fetched.bot).toEqual(installation.bot);
+        expect(fetched.user).toStrictEqual({
+          id: installation.user.id,
+        });
       });
 
       test('can fetch installer-USERID-latest', async () => {
