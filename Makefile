@@ -1,6 +1,6 @@
 test:
 	docker compose up -d
-	docker compose exec localstack /home/localstack/wait-for-s3.sh
+	docker compose exec localstack /home/localstack/wait-for-localstack.sh
 	npm run test
 	docker compose down
 

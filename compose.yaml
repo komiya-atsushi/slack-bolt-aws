@@ -10,4 +10,4 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./localstack/init/ready.d:/etc/localstack/init/ready.d"
-      - "./localstack/wait-for-s3.sh:/home/localstack/wait-for-s3.sh"
+      - "./localstack/wait-for-localstack.sh:/home/localstack/wait-for-localstack.sh"
