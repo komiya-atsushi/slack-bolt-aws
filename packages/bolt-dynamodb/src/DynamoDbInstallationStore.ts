@@ -338,22 +338,28 @@ export class DynamoDbInstallationStore extends InstallationStoreBase<
     sortKeyName: string;
     attributeName: string;
     deletionOption?: DeletionOption;
+    options?: {
+      historicalDataEnabled?: boolean;
+      installationCodec?: InstallationCodec;
+    };
   }): DynamoDbInstallationStore {
     const keyGenerator = SimpleKeyGenerator.create(
       args.partitionKeyName,
       args.sortKeyName
     );
+    const storage = DynamoDbStorage.create(
+      args.dynamoDb,
+      args.tableName,
+      keyGenerator,
+      args.attributeName,
+      args.deletionOption
+    );
 
     return new DynamoDbInstallationStore(
       args.clientId,
       keyGenerator,
-      DynamoDbStorage.create(
-        args.dynamoDb,
-        args.tableName,
-        keyGenerator,
-        args.attributeName,
-        args.deletionOption
-      )
+      storage,
+      args.options
     );
   }
 }
