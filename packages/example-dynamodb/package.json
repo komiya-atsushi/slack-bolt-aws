@@ -1,0 +1,15 @@
+{
+  "name": "example-dynamodb",
+  "version": "1.0.0",
+  "description": "An example Slack application that uses bolt-dynamodb",
+  "author": {
+    "name": "KOMIYA Atsushi",
+    "url": "https://github.com/komiya-atsushi"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=build/index.js"
+  },
+  "devDependencies": {},
+  "private": true
+}
