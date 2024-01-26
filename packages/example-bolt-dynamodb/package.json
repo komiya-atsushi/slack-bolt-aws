@@ -1,5 +1,5 @@
 {
-  "name": "example-dynamodb",
+  "name": "example-bolt-dynamodb",
   "version": "1.0.0",
   "description": "An example Slack application that uses bolt-dynamodb",
   "author": {
