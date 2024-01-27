@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Example Slack application for bolt-dynamodb
+
+Parameters:
+  ClientId:
+    Type: String
+  ClientSecret:
+    Type: String
+  SigningSecret:
+    Type: String
+  StateSecret:
+    Type: String
+  InstallationEncryptionPassword:
+    Type: String
+  InstallationEncryptionSalt:
+    Type: String
+
+Globals:
+  Function:
+    Timeout: 3
+    Environment:
+      Variables:
+        SLACK_CLIENT_ID: !Ref ClientId
+        SLACK_CLIENT_SECRET: !Ref ClientSecret
+        SLACK_SIGNING_SECRET: !Ref SigningSecret
+        SLACK_STATE_SECRET: !Ref StateSecret
+        REGION: !Ref AWS::Region
+        INSTALLATION_STORE_ENCRYPTION_PASSWORD: !Ref InstallationEncryptionPassword
+        INSTALLATION_STORE_ENCRYPTION_SALT: !Ref InstallationEncryptionSalt
+
+Resources:
+  InstallationStoreTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      DeletionProtectionEnabled: false
+      BillingMode: PAY_PER_REQUEST
+
+  SlackEventReceiver:
+    Type: AWS::Serverless::Function
+    Properties:
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref InstallationStoreTable
+      Events:
+        SlackEvent:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /slack/events
+        SlackInstall:
+          Type: Api
+          Properties:
+            Method: get
+            Path: /slack/install
+        SlackOAuthRedirect:
+          Type: Api
+          Properties:
+            Method: get
+            Path: /slack/oauth_redirect
+      Timeout: 600
+      PackageType: Image
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InstallationStoreTable
+    Metadata:
+      DockerTag: nodejs20.x-v1
+      DockerContext: ../../
+      Dockerfile: packages/example-bolt-dynamodb/Dockerfile
+
+Outputs:
+  SlackEventsApiEndpoint:
+    Description: "Set this URL as Request URL in Events Subscriptions."
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/events
+  SlackOAuthRedirectEndpoint:
+    Description: "Set this URL as Redirect URL in OAuth & Permissions."
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/oauth_redirect
+  SlackInstallEndpoint:
+    Description: "Open this URL to install and/or authorize Slack app."
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/install
