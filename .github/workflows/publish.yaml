@@ -30,11 +30,21 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
       - name: Bump version
-        run: npm -w packages/bolt-s3 version ${{ inputs.target_element }}
+        run: |
+          npm version ${{ inputs.target_element }} \
+            --include-workspace-root \
+            --no-git-tag-version \
+            -w packages/bolt-s3 \
+            -w packages/bolt-dynamodb
       - name: Get version string
         id: get-version-string
-        run: echo "version=$(jq -r .version packages/bolt-s3/package.json)" >> "$GITHUB_OUTPUT"
-      - run: git add package-lock.json packages/bolt-s3/package.json
+        run: echo "version=$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
+      - run: |
+          git add \
+            package.json \
+            package-lock.json \
+            packages/bolt-s3/package.json \
+            packages/bolt-dynamodb/package.json
       - run: git commit -m "v${{ steps.get-version-string.outputs.version }}"
       - run: git tag "v${{ steps.get-version-string.outputs.version }}"
       - run: npm ci
