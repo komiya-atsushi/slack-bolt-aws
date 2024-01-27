@@ -1,7 +1,7 @@
 # Bolt for JavaScript: S3 InstallationStore
 
 [![npm version](https://badge.fury.io/js/@k11i%2Fbolt-s3.svg)](https://badge.fury.io/js/@k11i%2Fbolt-s3)
-[![codecov](https://codecov.io/gh/komiya-atsushi/slack-bolt-s3/graph/badge.svg?token=TXWAYL4LMZ)](https://codecov.io/gh/komiya-atsushi/slack-bolt-s3)
+[![codecov](https://codecov.io/gh/komiya-atsushi/slack-bolt-aws/graph/badge.svg?token=TXWAYL4LMZ)](https://codecov.io/gh/komiya-atsushi/slack-bolt-aws)
 
 This package provides an S3-backed InstallationStore implementation with a few additional functionalities.
 
