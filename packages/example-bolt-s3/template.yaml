@@ -69,7 +69,7 @@ Resources:
     Metadata:
       DockerTag: nodejs20.x-v1
       DockerContext: ../../
-      Dockerfile: packages/example-app/Dockerfile
+      Dockerfile: packages/example-bolt-s3/Dockerfile
 
 Outputs:
   SlackEventsApiEndpoint:

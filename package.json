@@ -37,7 +37,7 @@
   },
   "workspaces": [
     "packages/bolt-s3",
-    "packages/example-app",
+    "packages/example-bolt-s3",
     "packages/bolt-dynamodb",
     "packages/example-bolt-dynamodb"
   ],
