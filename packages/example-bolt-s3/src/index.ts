@@ -3,18 +3,26 @@ import serverlessExpress from '@codegenie/serverless-express';
 import {S3} from '@aws-sdk/client-s3';
 import {BinaryInstallationCodec, S3InstallationStore} from '@k11i/bolt-s3';
 
-const clientId = process.env.SLACK_CLIENT_ID ?? '';
+function ensureNotUndefined(envName: string): string {
+  const result = process.env[envName];
+  if (result === undefined) {
+    throw new Error(`Environment variable '${envName}' is not defined`);
+  }
+  return result;
+}
 
-const s3Client = new S3({region: process.env.S3_REGION ?? ''});
+const clientId = ensureNotUndefined('SLACK_CLIENT_ID');
+
+const s3Client = new S3({region: process.env.S3_REGION});
 
 const installationCodec = BinaryInstallationCodec.createDefault(
-  process.env.S3_INSTALLATION_STORE_ENCRYPTION_PASSWORD ?? 'password',
-  process.env.S3_INSTALLATION_STORE_ENCRYPTION_SALT ?? 'salt'
+  ensureNotUndefined('S3_INSTALLATION_STORE_ENCRYPTION_PASSWORD'),
+  ensureNotUndefined('S3_INSTALLATION_STORE_ENCRYPTION_SALT')
 );
 
 const installationStore = new S3InstallationStore(
   s3Client,
-  process.env.S3_BUCKET_NAME ?? '',
+  ensureNotUndefined('S3_BUCKET_NAME'),
   clientId,
   {
     historicalDataEnabled: true,
@@ -25,9 +33,9 @@ const installationStore = new S3InstallationStore(
 const expressReceiver = new ExpressReceiver({
   logLevel: LogLevel.DEBUG,
   clientId,
-  signingSecret: process.env.SLACK_SIGNING_SECRET ?? '',
-  clientSecret: process.env.SLACK_CLIENT_SECRET ?? '',
-  stateSecret: process.env.SLACK_STATE_SECRET ?? '',
+  signingSecret: ensureNotUndefined('SLACK_SIGNING_SECRET'),
+  clientSecret: ensureNotUndefined('SLACK_CLIENT_SECRET'),
+  stateSecret: ensureNotUndefined('SLACK_STATE_SECRET'),
   scopes: ['channels:history', 'channels:read', 'chat:write'],
   installationStore,
   installerOptions: {

@@ -6,19 +6,27 @@ import {
   DynamoDbInstallationStore,
 } from '@k11i/bolt-dynamodb';
 
-const clientId = process.env.SLACK_CLIENT_ID ?? '';
+function ensureNotUndefined(envName: string): string {
+  const result = process.env[envName];
+  if (result === undefined) {
+    throw new Error(`Environment variable '${envName}' is not defined`);
+  }
+  return result;
+}
+
+const clientId = ensureNotUndefined('SLACK_CLIENT_ID');
 
 const dynamoDb = new DynamoDB({region: process.env.AWS_REGION});
 
 const installationCodec = BinaryInstallationCodec.createDefault(
-  process.env.INSTALLATION_STORE_ENCRYPTION_PASSWORD ?? 'password',
-  process.env.INSTALLATION_STORE_ENCRYPTION_SALT ?? 'salt'
+  ensureNotUndefined('INSTALLATION_STORE_ENCRYPTION_PASSWORD'),
+  ensureNotUndefined('INSTALLATION_STORE_ENCRYPTION_SALT')
 );
 
 const installationStore = DynamoDbInstallationStore.create({
   clientId,
   dynamoDb,
-  tableName: process.env.DYNAMODB_TABLE_NAME ?? '',
+  tableName: ensureNotUndefined('DYNAMODB_TABLE_NAME'),
   partitionKeyName: 'PK',
   sortKeyName: 'SK',
   attributeName: 'Installation',
@@ -30,9 +38,9 @@ const installationStore = DynamoDbInstallationStore.create({
 const expressReceiver = new ExpressReceiver({
   logLevel: LogLevel.DEBUG,
   clientId,
-  signingSecret: process.env.SLACK_SIGNING_SECRET ?? '',
-  clientSecret: process.env.SLACK_CLIENT_SECRET ?? '',
-  stateSecret: process.env.SLACK_STATE_SECRET ?? '',
+  signingSecret: ensureNotUndefined('SLACK_SIGNING_SECRET'),
+  clientSecret: ensureNotUndefined('SLACK_CLIENT_SECRET'),
+  stateSecret: ensureNotUndefined('SLACK_STATE_SECRET'),
   scopes: ['channels:history', 'channels:read', 'chat:write'],
   installationStore,
   installerOptions: {
