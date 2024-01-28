@@ -2,11 +2,16 @@ import {ConsoleLogger, LogLevel} from '@slack/logger';
 import {Installation, InstallationQuery} from '@slack/oauth';
 import {
   AttributeValue,
+  BatchGetItemCommandInput,
+  BatchGetItemCommandOutput,
   DynamoDB,
   PutItemCommandInput,
   ScanCommandOutput,
 } from '@aws-sdk/client-dynamodb';
-import {DynamoDbInstallationStore} from '../src/DynamoDbInstallationStore';
+import {
+  DynamoDbInstallationStore,
+  SimpleKeyGenerator,
+} from '../src/DynamoDbInstallationStore';
 import {generateTestData, TestInstallation} from './test-data';
 
 const logger = new ConsoleLogger();
@@ -608,6 +613,156 @@ describe('DynamoDbInstallationStore', () => {
           testContext.extractInstallationAttributeValue(bot!)
         ).not.toBeUndefined();
       });
+    });
+  });
+
+  describe('Behavior of the fetchMultiple', () => {
+    const testData = generateTestData();
+    const userInstallation = testData.installation.teamA.userA1;
+    const botLatestInstallation = testData.installation.teamA.userA2;
+
+    const clientId = 'bolt-dynamodb-test';
+    const tableName = 'FetchMultipleTestTable';
+    const teamId = userInstallation.team.id;
+    const userId = userInstallation.user.id;
+
+    const itemOfUser: Record<string, AttributeValue> = {
+      PK: {S: `Client#${clientId}$Enterprise#none$Team#${teamId}`},
+      SK: {S: `Type#Token$User#${userId}$Version#latest`},
+      Installation: {B: Buffer.from(JSON.stringify(userInstallation))},
+    };
+    const itemOfBot: Record<string, AttributeValue> = {
+      PK: {S: `Client#${clientId}$Enterprise#none$Team#${teamId}`},
+      SK: {S: 'Type#Token$User#___bot___$Version#latest'},
+      Installation: {B: Buffer.from(JSON.stringify(botLatestInstallation))},
+    };
+
+    const fetchQuery: InstallationQuery<false> = {
+      isEnterpriseInstall: false,
+      enterpriseId: undefined,
+      teamId,
+      userId,
+    };
+
+    function setUp(
+      ...items: Record<string, AttributeValue>[]
+    ): DynamoDbInstallationStore {
+      const mockedBatchGetItem: (
+        args: BatchGetItemCommandInput
+      ) => Promise<BatchGetItemCommandOutput> = jest.fn(() => {
+        return new Promise(resolve =>
+          resolve({
+            Responses: Object.fromEntries([[tableName, items]]),
+          } as BatchGetItemCommandOutput)
+        );
+      });
+
+      const mockedDynamoDbClient = {
+        batchGetItem: mockedBatchGetItem,
+      } as DynamoDB;
+
+      return DynamoDbInstallationStore.create({
+        clientId: 'bolt-dynamodb-test',
+        dynamoDb: mockedDynamoDbClient,
+        tableName: 'FetchMultipleTestTable',
+        partitionKeyName: 'PK',
+        sortKeyName: 'SK',
+        attributeName: 'Installation',
+      });
+    }
+
+    test.each([[[itemOfUser, itemOfBot]], [[itemOfBot, itemOfUser]]])(
+      'fetchInstallation() handles BatchGetItem response regardless of item order',
+      async items => {
+        // arrange
+        const sut = setUp(...items);
+
+        // act
+        const result = await sut.fetchInstallation(fetchQuery);
+
+        // assert
+        expect(result.user.id).toEqual(userId);
+      }
+    );
+  });
+});
+
+describe('SimpleKeyGenerator', () => {
+  const sut = SimpleKeyGenerator.create('PK', 'SK');
+
+  describe('equals()', () => {
+    it('returns true when two objects are equal', () => {
+      const result = sut.equals(
+        {
+          PK: {S: 'PartitionKey-0'},
+          SK: {S: 'SortKey-0'},
+        },
+        {
+          PK: {S: 'PartitionKey-0'},
+          SK: {S: 'SortKey-0'},
+        }
+      );
+
+      expect(result).toEqual(true);
+    });
+
+    it('returns false when partition keys of two objects are not equal', () => {
+      const result = sut.equals(
+        {
+          PK: {S: 'PartitionKey-0'},
+          SK: {S: 'SortKey-0'},
+        },
+        {
+          PK: {S: 'PartitionKey-99999'},
+          SK: {S: 'SortKey-0'},
+        }
+      );
+      expect(result).toEqual(false);
+    });
+
+    it('return false when sort keys of two objects are not equal', () => {
+      const result = sut.equals(
+        {
+          PK: {S: 'PartitionKey-0'},
+          SK: {S: 'SortKey-0'},
+        },
+        {
+          PK: {S: 'PartitionKey-0'},
+          SK: {S: 'SortKey-99999'},
+        }
+      );
+
+      expect(result).toEqual(false);
+    });
+
+    it('returns false when two objects are equal but the data type of the partition key is not string', () => {
+      const result = sut.equals(
+        {
+          PK: {N: '0'},
+          SK: {S: 'SortKey-0'},
+        },
+        {
+          PK: {N: '0'},
+          SK: {S: 'SortKey-0'},
+        }
+      );
+
+      expect(result).toEqual(false);
+    });
+
+    it('returns false when two objects are equal but the data type of the sort key is not string', () => {
+      const result = sut.equals(
+        {
+          PK: {S: 'PartitionKey-0'},
+          SK: {N: '0'},
+        },
+        {
+          PK: {S: 'PartitionKey-0'},
+          SK: {N: '0'},
+        }
+      );
+
+      expect(result).toEqual(false);
     });
   });
 });

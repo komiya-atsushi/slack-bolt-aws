@@ -1,6 +1,7 @@
 import {Logger} from '@slack/logger';
 import {
   AttributeValue,
+  BatchGetItemCommandInput,
   BatchWriteItemCommandInput,
   DynamoDB,
   GetItemCommandInput,
@@ -12,7 +13,6 @@ import {
   InstallationStoreBase,
   KeyGenerator,
   KeyGeneratorArgs,
-  Storage,
   StorageBase,
 } from './InstallationStoreBase';
 
@@ -30,14 +30,20 @@ type DeletionOption = 'DELETE_ITEM' | 'DELETE_ATTRIBUTE';
 
 export interface DynamoDbKeyGenerator
   extends KeyGenerator<DynamoDbKey, DynamoDbDeletionKey> {
+  readonly keyAttributeNames: string[];
   extractKeyFrom(item: Record<string, AttributeValue>): DynamoDbKey;
+  equals(key1: DynamoDbKey, key2: DynamoDbKey): boolean;
 }
 
 export class SimpleKeyGenerator implements DynamoDbKeyGenerator {
+  readonly keyAttributeNames: string[];
+
   private constructor(
     private readonly partitionKeyName: string,
     private readonly sortKeyName: string
-  ) {}
+  ) {
+    this.keyAttributeNames = [partitionKeyName, sortKeyName];
+  }
 
   static create(
     partitionKeyName = 'PK',
@@ -76,6 +82,18 @@ export class SimpleKeyGenerator implements DynamoDbKeyGenerator {
       [this.partitionKeyName, item[this.partitionKeyName]],
       [this.sortKeyName, item[this.sortKeyName]],
     ]);
+  }
+
+  equals(key1: DynamoDbKey, key2: DynamoDbKey): boolean {
+    const pk1 = key1[this.partitionKeyName]?.S;
+    const pk2 = key2[this.partitionKeyName]?.S;
+    if (pk1 === undefined || pk2 === undefined || pk1 !== pk2) {
+      return false;
+    }
+
+    const sk1 = key1[this.sortKeyName]?.S;
+    const sk2 = key2[this.sortKeyName]?.S;
+    return !(sk1 === undefined || sk2 === undefined || sk1 !== sk2);
   }
 
   private generatePartitionKey(args: KeyGeneratorArgs): string {
@@ -195,8 +213,86 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
       return undefined;
     }
 
-    const b = response.Item[this.attributeName].B;
+    return this.extractInstallation(response.Item);
+  }
+
+  private extractInstallation(
+    item: Record<string, AttributeValue>
+  ): Buffer | undefined {
+    const b = item[this.attributeName]?.B;
     return b ? Buffer.from(b) : undefined;
+  }
+
+  // ---
+
+  async fetchMultiple(
+    keys: DynamoDbKey[],
+    logger: Logger | undefined
+  ): Promise<(Buffer | undefined)[]> {
+    if (keys.length === 1) {
+      return [await this.fetch(keys[0], logger)];
+    }
+
+    const entries = this.keyGenerator.keyAttributeNames.map(
+      (attrName, index) => {
+        return [`#key${index}`, attrName];
+      }
+    );
+
+    const input: BatchGetItemCommandInput = {
+      RequestItems: Object.fromEntries([
+        [
+          this.tableName,
+          {
+            Keys: keys,
+            ProjectionExpression: `#inst, ${entries
+              .map(([expAttrName]) => expAttrName)
+              .join(', ')}`,
+            ExpressionAttributeNames: {
+              '#inst': this.attributeName,
+              ...Object.fromEntries(entries),
+            },
+          },
+        ],
+      ]),
+      ReturnConsumedCapacity: 'TOTAL',
+    };
+
+    const response = await this.client.batchGetItem(input);
+    logger?.debug(
+      '[fetchMultiple] BatchGetItem consumed capacity',
+      response.ConsumedCapacity
+    );
+
+    if (
+      response.Responses === undefined ||
+      response.Responses[this.tableName] === undefined
+    ) {
+      return [];
+    }
+    const items = response.Responses[this.tableName];
+
+    const result: (Buffer | undefined)[] = [];
+
+    for (const key of keys) {
+      let found: Record<string, AttributeValue> | undefined;
+      for (const item of items) {
+        const keyFromItem = this.keyGenerator.extractKeyFrom(item);
+        if (this.keyGenerator.equals(keyFromItem, key)) {
+          found = item;
+          break;
+        }
+      }
+
+      if (found) {
+        result.push(this.extractInstallation(found));
+      } else {
+        logger?.debug('Item not found', key);
+        result.push(undefined);
+      }
+    }
+
+    return result;
   }
 
   // ---
