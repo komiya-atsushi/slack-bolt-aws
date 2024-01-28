@@ -13,6 +13,7 @@ import {
   KeyGenerator,
   KeyGeneratorArgs,
   Storage,
+  StorageBase,
 } from './InstallationStoreBase';
 
 type DynamoDbKey = Record<string, AttributeValue>;
@@ -116,14 +117,16 @@ export class SimpleKeyGenerator implements DynamoDbKeyGenerator {
   }
 }
 
-class DynamoDbStorage implements Storage<DynamoDbKey, DynamoDbDeletionKey> {
+class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
   constructor(
     private readonly client: DynamoDB,
     private readonly tableName: string,
     private readonly keyGenerator: DynamoDbKeyGenerator,
     private readonly attributeName: string,
     private readonly deletionOption: DeletionOption
-  ) {}
+  ) {
+    super();
+  }
 
   static async create(
     client: DynamoDB | Promise<DynamoDB>,

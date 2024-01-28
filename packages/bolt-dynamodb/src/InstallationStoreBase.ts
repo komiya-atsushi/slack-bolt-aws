@@ -22,7 +22,37 @@ export interface Storage<KEY, KEY_FOR_DELETION> {
     logger: Logger | undefined
   ): Promise<void>;
   fetch(key: KEY, logger: Logger | undefined): Promise<Buffer | undefined>;
+  fetchMultiple(
+    keys: KEY[],
+    logger: Logger | undefined
+  ): Promise<(Buffer | undefined)[]>;
   delete(key: KEY_FOR_DELETION, logger: Logger | undefined): Promise<void>;
+}
+
+export abstract class StorageBase<KEY, KEY_FOR_DELETION>
+  implements Storage<KEY, KEY_FOR_DELETION>
+{
+  abstract store(
+    key: KEY,
+    data: Buffer,
+    isBotToken: boolean,
+    logger: Logger | undefined
+  ): Promise<void>;
+  abstract fetch(
+    key: KEY,
+    logger: Logger | undefined
+  ): Promise<Buffer | undefined>;
+  abstract delete(
+    key: KEY_FOR_DELETION,
+    logger: Logger | undefined
+  ): Promise<void>;
+
+  async fetchMultiple(
+    keys: KEY[],
+    logger: Logger | undefined
+  ): Promise<(Buffer | undefined)[]> {
+    return await Promise.all(keys.map(key => this.fetch(key, logger)));
+  }
 }
 
 export class InstallationStoreBase<KEY, KEY_FOR_DELETION>
@@ -102,12 +132,8 @@ export class InstallationStoreBase<KEY, KEY_FOR_DELETION>
     }
 
     const storage = await this.storage;
-    const [app, user] = await Promise.all(
-      keys.map(key =>
-        storage
-          .fetch(key, logger)
-          .then(data => (data ? this.codec.decode(data) : undefined))
-      )
+    const [app, user] = (await storage.fetchMultiple(keys, logger)).map(data =>
+      data ? this.codec.decode(data) : undefined
     );
 
     if (app !== undefined) {
