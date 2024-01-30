@@ -1,4 +1,4 @@
-# AWS integrations for Bolt for JavaScripts
+# AWS integrations for Bolt for JavaScript
 
 [![codecov](https://codecov.io/gh/komiya-atsushi/slack-bolt-aws/graph/badge.svg?token=TXWAYL4LMZ)](https://codecov.io/gh/komiya-atsushi/slack-bolt-aws)
 
