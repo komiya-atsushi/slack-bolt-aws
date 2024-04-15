@@ -39,7 +39,8 @@
     "packages/bolt-s3",
     "packages/example-bolt-s3",
     "packages/bolt-dynamodb",
-    "packages/example-bolt-dynamodb"
+    "packages/example-bolt-dynamodb",
+    "packages/common-installation-store"
   ],
   "private": true
 }
