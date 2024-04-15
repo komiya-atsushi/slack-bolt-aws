@@ -110,9 +110,14 @@ describe('S3InstallationStore', () => {
   });
 
   describe('historicalDataEnabled: true', () => {
-    const sut = new S3InstallationStore(s3Client, bucketName, slackClientId, {
-      historicalDataEnabled: true,
-      installationCodec,
+    const sut = S3InstallationStore.create({
+      s3: s3Client,
+      bucketName,
+      clientId: slackClientId,
+      options: {
+        historicalDataEnabled: true,
+        installationCodec,
+      },
     });
 
     describe('storeInstallation()', () => {
@@ -292,15 +297,25 @@ describe('S3InstallationStore', () => {
   });
 
   describe('historicalDataEnabled: false', () => {
-    const sut = new S3InstallationStore(
-      new Promise(resolve => resolve(s3Client)),
+    const sut = S3InstallationStore.create({
+      s3: s3Client,
       bucketName,
-      slackClientId,
-      {
+      clientId: slackClientId,
+      options: {
         historicalDataEnabled: false,
         installationCodec,
-      }
-    );
+      },
+    });
+    // todo remove
+    // const sut = new S3InstallationStore(
+    //   new Promise(resolve => resolve(s3Client)),
+    //   bucketName,
+    //   slackClientId,
+    //   {
+    //     historicalDataEnabled: false,
+    //     installationCodec,
+    //   }
+    // );
 
     describe('storeInstallation()', () => {
       test('can store installations without histories', async () => {

@@ -1,76 +1,139 @@
 import {ListObjectsV2CommandInput, S3} from '@aws-sdk/client-s3';
 import {Logger} from '@slack/logger';
-import {Installation, InstallationQuery, InstallationStore} from '@slack/oauth';
 import {InstallationCodec, JsonInstallationCodec} from './InstallationCodec';
+import {
+  InstallationStoreBase,
+  KeyGenerator,
+  KeyGeneratorArgs,
+  StorageBase,
+} from './InstallationStoreBase';
 
-class S3Client {
-  private constructor(
+type S3Key = string;
+type S3DeletionKey = string;
+
+export type S3KeyGenerator = KeyGenerator<S3Key, S3DeletionKey>;
+
+export class SimpleKeyGenerator implements S3KeyGenerator {
+  static create() {
+    return new SimpleKeyGenerator();
+  }
+
+  generate(args: KeyGeneratorArgs & {historyVersion?: string}): string {
+    const base = `${args.clientId}/${args.enterpriseId ?? 'none'}-${
+      args.teamId ?? 'none'
+    }`;
+    const historyVersion = args.historyVersion ?? 'latest';
+    return args.userId !== undefined
+      ? `${base}/installer-${args.userId}-${historyVersion}`
+      : `${base}/installer-${historyVersion}`;
+  }
+
+  generateForDeletion(args: KeyGeneratorArgs): string {
+    const base = `${args.clientId}/${args.enterpriseId ?? 'none'}-${
+      args.teamId ?? 'none'
+    }`;
+    return args.userId !== undefined
+      ? `${base}/installer-${args.userId}-`
+      : `${base}/installer-`;
+  }
+}
+
+class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
+  constructor(
     private readonly client: S3,
     private readonly bucketName: string
-  ) {}
+  ) {
+    super();
+  }
 
   static async create(
     s3: Promise<S3> | S3,
     bucketName: string
-  ): Promise<S3Client> {
-    if (s3 instanceof Promise) {
-      return new S3Client(await s3, bucketName);
-    }
-    return new S3Client(s3, bucketName);
+  ): Promise<S3Storage> {
+    const client = s3 instanceof Promise ? await s3 : s3;
+    return new S3Storage(client, bucketName);
   }
 
-  async store(key: string, data: Buffer, logger?: Logger): Promise<void> {
+  async store(
+    key: S3Key,
+    data: Buffer,
+    isBotToken: boolean,
+    logger: Logger | undefined
+  ): Promise<void> {
     const response = await this.client.putObject({
       Bucket: this.bucketName,
       Key: key,
       Body: data,
     });
 
-    logger?.debug(
-      `S3 putObject response: ${JSON.stringify(response.$metadata)}`
-    );
+    logger?.debug('[store] PutObject response', key, response.$metadata);
   }
 
-  async fetch(key: string, logger?: Logger): Promise<Buffer | undefined> {
+  async fetch(
+    key: S3Key,
+    logger: Logger | undefined
+  ): Promise<Buffer | undefined> {
     try {
       const response = await this.client.getObject({
         Bucket: this.bucketName,
         Key: key,
       });
-      logger?.debug(
-        `S3 getObject response: ${JSON.stringify(response.$metadata)}`
-      );
 
-      const body = response.Body;
-      if (body === undefined) {
-        return undefined;
-      }
+      logger?.debug('[fetch] GetObject response', key, response.$metadata);
 
-      const array = await body?.transformToByteArray();
-      return Buffer.from(array);
+      const byteArray = await response.Body?.transformToByteArray();
+      return byteArray !== undefined ? Buffer.from(byteArray) : undefined;
     } catch (e) {
-      logger?.warn(
-        `Failed to get installation: bucket = ${this.bucketName}, key = ${key}:`,
-        e
-      );
+      logger?.debug('Object not found', key);
       return undefined;
     }
   }
 
-  async delete(keyPrefix: string, logger?: Logger): Promise<void> {
+  async delete(key: S3DeletionKey, logger: Logger | undefined): Promise<void> {
+    const keysToDelete = await this.listKeysToDelete(key, logger);
+
+    const promises: Promise<unknown>[] = [];
+
+    // DeleteObjectsCommand can delete objects up to 1,000 per call
+    const chunkSize = 1000;
+    for (let i = 0; i < keysToDelete.length; i += chunkSize) {
+      const chunk = keysToDelete.slice(i, i + chunkSize);
+
+      logger?.debug('[delete] Going to delete installations', chunk);
+
+      const promise = this.client.deleteObjects({
+        Bucket: this.bucketName,
+        Delete: {
+          Objects: chunk.map(Key => ({Key})),
+        },
+      });
+
+      promises.push(promise);
+    }
+
+    await Promise.all(promises);
+  }
+
+  private async listKeysToDelete(
+    key: S3DeletionKey,
+    logger: Logger | undefined
+  ): Promise<S3Key[]> {
     const input: ListObjectsV2CommandInput = {
       Bucket: this.bucketName,
-      Prefix: keyPrefix,
+      Prefix: key,
     };
-
-    const objectKeys: string[] = [];
-    let isTruncated;
+    const result: S3Key[] = [];
+    let isTruncated: boolean | undefined;
     do {
       const response = await this.client.listObjectsV2(input);
+
       input.ContinuationToken = response.NextContinuationToken;
       isTruncated = response.IsTruncated;
+
+      logger?.debug('[delete] ListObjectsV2 response', response);
+
       if (response.Contents) {
-        objectKeys.push(
+        result.push(
           ...response.Contents.map(({Key}) => Key).filter(
             (key): key is string => typeof key === 'string'
           )
@@ -78,160 +141,50 @@ class S3Client {
       }
     } while (isTruncated);
 
-    // DeleteObjectsCommand can delete objects up to 1,000 per call
-    const deletePromises: Promise<unknown>[] = [];
-    const chunkSize = 1000;
-    for (let i = 0; i < objectKeys.length; i += chunkSize) {
-      const chunk = objectKeys.slice(i, i + chunkSize);
-      logger?.info(`Going to delete installations: ${chunk.join(', ')}`);
-      const promise = this.client.deleteObjects({
-        Bucket: this.bucketName,
-        Delete: {
-          Objects: chunk.map(Key => ({Key})),
-        },
-      });
-      deletePromises.push(promise);
-    }
-
-    await Promise.all(deletePromises);
+    return result;
   }
 }
 
-export class S3InstallationStore implements InstallationStore {
-  private readonly s3Client: Promise<S3Client>;
-  private readonly installationCodec: InstallationCodec;
-
+export class S3InstallationStore extends InstallationStoreBase<
+  S3Key,
+  S3DeletionKey
+> {
   constructor(
-    s3: Promise<S3> | S3,
-    bucketName: string,
-    private readonly clientId: string,
-    private readonly options?: {
+    clientId: string,
+    keyGenerator: S3KeyGenerator,
+    storage: Promise<S3Storage>,
+    options?: {
       historicalDataEnabled?: boolean;
       installationCodec?: InstallationCodec;
     }
   ) {
-    this.s3Client = S3Client.create(s3, bucketName);
-    this.installationCodec =
-      options?.installationCodec ?? JsonInstallationCodec.INSTANCE;
-  }
-
-  private createBaseKey(
-    enterpriseId: string | undefined,
-    teamId: string | undefined
-  ): string {
-    const elements = [enterpriseId ?? 'none', teamId ?? 'none'];
-    return `${this.clientId}/${elements.join('-')}`;
-  }
-
-  private createAppKey(baseKey: string, historyVersion = 'latest'): string {
-    return `${baseKey}/installer-${historyVersion}`;
-  }
-
-  private createUserKey(
-    baseKey: string,
-    userId: string,
-    historyVersion = 'latest'
-  ): string {
-    return `${baseKey}/installer-${userId}-${historyVersion}`;
-  }
-
-  private createHistoryVersion(): string {
-    return Date.now().toString();
-  }
-
-  private encodeInstallation(installation: Installation): Buffer {
-    return this.installationCodec.encode(installation);
-  }
-
-  private decodeInstallation(data: Buffer): Installation {
-    return this.installationCodec.decode(data);
-  }
-
-  async storeInstallation<AuthVersion extends 'v1' | 'v2'>(
-    installation: Installation<AuthVersion, boolean>,
-    logger?: Logger
-  ): Promise<void> {
-    const baseKey = this.createBaseKey(
-      installation.enterprise?.id,
-      installation.team?.id
-    );
-
-    const keys: string[] = [
-      this.createAppKey(baseKey),
-      this.createUserKey(baseKey, installation.user.id),
-    ];
-    if (this.options?.historicalDataEnabled) {
-      const historyVersion = this.createHistoryVersion();
-      keys.push(
-        this.createAppKey(baseKey, historyVersion),
-        this.createUserKey(baseKey, installation.user.id, historyVersion)
-      );
-    }
-
-    const data = this.encodeInstallation(installation);
-    const s3Client = await this.s3Client;
-
-    await Promise.all(keys.map(key => s3Client.store(key, data, logger)));
-  }
-
-  /**
-   * Fetches the installation based on the given query parameters from S3 bucket.
-   *
-   * If query.userId is not specified, the returned installation will not include a user token.
-   * Likewise, if no S3 object of installation matching query.userId is found,
-   * the returned installation will also not include a user token.
-   */
-  async fetchInstallation(
-    query: InstallationQuery<boolean>,
-    logger?: Logger
-  ): Promise<Installation> {
-    const baseKey = this.createBaseKey(query.enterpriseId, query.teamId);
-
-    const keys = [this.createAppKey(baseKey)];
-    if (query.userId) {
-      keys.push(this.createUserKey(baseKey, query.userId));
-    }
-
-    const s3Client = await this.s3Client;
-    const [app, user] = await Promise.all(
-      keys.map(key =>
-        s3Client
-          .fetch(key, logger)
-          .then(data => (data ? this.decodeInstallation(data) : undefined))
-      )
-    );
-
-    if (app !== undefined) {
-      if (user !== undefined) {
-        app.user = user.user;
-      } else {
-        delete app.user.token;
-        delete app.user.refreshToken;
-        delete app.user.expiresAt;
-        delete app.user.scopes;
-      }
-      return app;
-    }
-
-    if (user !== undefined) {
-      return user;
-    }
-
-    throw new Error(
-      `No valid installation found: query = ${JSON.stringify(query)}`
+    super(
+      clientId,
+      keyGenerator,
+      storage,
+      options?.installationCodec ?? JsonInstallationCodec.INSTANCE,
+      !!options?.historicalDataEnabled
     );
   }
 
-  async deleteInstallation(
-    query: InstallationQuery<boolean>,
-    logger?: Logger
-  ): Promise<void> {
-    const baseKey = this.createBaseKey(query.enterpriseId, query.teamId);
+  static create(args: {
+    clientId: string;
+    s3: Promise<S3> | S3;
+    bucketName: string;
+    options?: {
+      historicalDataEnabled?: boolean;
+      installationCodec?: InstallationCodec;
+    };
+  }): S3InstallationStore {
+    const keyGenerator = SimpleKeyGenerator.create();
 
-    const keyPrefix = query.userId
-      ? this.createUserKey(baseKey, query.userId, '')
-      : this.createAppKey(baseKey, '');
+    const storage = S3Storage.create(args.s3, args.bucketName);
 
-    await (await this.s3Client).delete(keyPrefix, logger);
+    return new S3InstallationStore(
+      args.clientId,
+      keyGenerator,
+      storage,
+      args.options
+    );
   }
 }

@@ -1,0 +1,1 @@
+../../common-installation-store/src/InstallationStoreBase.ts

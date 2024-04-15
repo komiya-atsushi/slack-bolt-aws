@@ -20,15 +20,15 @@ const installationCodec = BinaryInstallationCodec.createDefault(
   ensureNotUndefined('S3_INSTALLATION_STORE_ENCRYPTION_SALT')
 );
 
-const installationStore = new S3InstallationStore(
-  s3Client,
-  ensureNotUndefined('S3_BUCKET_NAME'),
+const installationStore = S3InstallationStore.create({
   clientId,
-  {
+  s3: s3Client,
+  bucketName: ensureNotUndefined('S3_BUCKET_NAME'),
+  options: {
     historicalDataEnabled: true,
     installationCodec,
-  }
-);
+  },
+});
 
 const expressReceiver = new ExpressReceiver({
   logLevel: LogLevel.DEBUG,

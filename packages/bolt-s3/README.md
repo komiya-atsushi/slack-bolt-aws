@@ -27,12 +27,12 @@ import {S3InstallationStore} from '@k11i/bolt-s3';
 
 const s3 = new S3({ region: 'us-east-2' });
 
-const installationStore = new S3InstallationStore(
+const installationStore = S3InstallationStore.create({
+  clientId,
   s3,
   // An S3 bucket needs to be created.
-  'bucket-name-where-installations-are-stored',
-  process.env.SLACK_CLIENT_ID,
-  {
+  bucketName: 'bucket-name-where-installations-are-stored',
+  options: {
     historicalDataEnabled: true,
     // Omit the following line if you prefer not to encrypt and/or compress installations.
     installationCodec: BinaryInstallationCodec.createDefault(
@@ -40,7 +40,7 @@ const installationStore = new S3InstallationStore(
       'your-encryption-salt',
     ),
   }
-);
+});
 
 const app = new App({
   socketMode: true,
