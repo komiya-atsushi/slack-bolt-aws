@@ -1,6 +1,9 @@
 {
   "name": "common-installation-store",
   "version": "1.0.0",
-  "devDependencies": {},
+  "dependencies": {
+    "@slack/logger": "^4.0.0",
+    "@slack/oauth": "^2.6.2"
+  },
   "license": "MIT"
 }

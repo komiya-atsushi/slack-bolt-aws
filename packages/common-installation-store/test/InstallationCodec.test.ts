@@ -1,4 +1,7 @@
-import {BinaryInstallationCodec, JsonInstallationCodec} from '../src';
+import {
+  BinaryInstallationCodec,
+  JsonInstallationCodec,
+} from '../src/InstallationCodec';
 import {installation} from './test-data';
 
 describe('JsonInstallationCodec', () => {
