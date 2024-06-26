@@ -190,6 +190,8 @@ describe('S3InstallationStore', () => {
         expect(fetched.bot).toEqual(installation.bot);
         expect(fetched.user).toStrictEqual({
           id: installation.user.id,
+          token: undefined,
+          scopes: undefined,
         });
       });
 
