@@ -8,11 +8,12 @@ import {
   PutItemCommandInput,
   ScanCommandOutput,
 } from '@aws-sdk/client-dynamodb';
+import {DynamoDbInstallationStore, SimpleKeyGenerator} from '../src';
 import {
-  DynamoDbInstallationStore,
-  SimpleKeyGenerator,
-} from '../src/DynamoDbInstallationStore';
-import {generateTestData, TestInstallation} from './test-data';
+  generateEnterpriseTestData,
+  generateTestData,
+  TestInstallation,
+} from './test-data';
 
 const logger = new ConsoleLogger();
 logger.setLevel(LogLevel.DEBUG);
@@ -25,6 +26,12 @@ const dynamoDbClient = new DynamoDB({
     secretAccessKey: 'test',
   },
 });
+
+function isOrganizationWideInstall(
+  installation: Installation<'v2', boolean>
+): installation is Installation<'v2', true> {
+  return installation.isEnterpriseInstall ?? false;
+}
 
 class TestContext {
   constructor(
@@ -78,15 +85,22 @@ class TestContext {
     });
   }
 
-  expectedPartitionKey(installation: TestInstallation): string {
-    return `Client#${this.slackClientId}$Enterprise#none$Team#${installation.team.id}`;
+  expectedPartitionKey(
+    installation: Installation<'v2', true> | Installation<'v2', false>
+  ): string {
+    if (isOrganizationWideInstall(installation)) {
+      return `Client#${this.slackClientId}$Enterprise#${installation.enterprise.id}$Team#none`;
+    } else {
+      const enterpriseId = installation?.enterprise?.id ?? 'none';
+      return `Client#${this.slackClientId}$Enterprise#${enterpriseId}$Team#${installation.team.id}`;
+    }
   }
 
-  expectedSortKeyForUser(installation: TestInstallation): string {
+  expectedSortKeyForUser(installation: Installation<'v2', boolean>): string {
     return `Type#Token$User#${installation.user.id}$Version#latest`;
   }
 
-  expectedSortKeyForBot(_: TestInstallation): string {
+  expectedSortKeyForBot(_: Installation<'v2', boolean>): string {
     return 'Type#Token$User#___bot___$Version#latest';
   }
 
@@ -96,7 +110,9 @@ class TestContext {
     ]);
   }
 
-  asItemOfUser(installation: TestInstallation): Record<string, AttributeValue> {
+  asItemOfUser(
+    installation: Installation<'v2', true> | Installation<'v2', false>
+  ): Record<string, AttributeValue> {
     const key = Object.fromEntries([
       [this.partitionKeyName, {S: this.expectedPartitionKey(installation)}],
       [this.sortKeyName, {S: this.expectedSortKeyForUser(installation)}],
@@ -108,7 +124,9 @@ class TestContext {
     };
   }
 
-  asItemOfBot(installation: TestInstallation): Record<string, AttributeValue> {
+  asItemOfBot(
+    installation: Installation<'v2', true> | Installation<'v2', false>
+  ): Record<string, AttributeValue> {
     const key = Object.fromEntries([
       [this.partitionKeyName, {S: this.expectedPartitionKey(installation)}],
       [this.sortKeyName, {S: this.expectedSortKeyForBot(installation)}],
@@ -205,17 +223,23 @@ class TestContext {
 }
 
 function toBotQuery(
-  installation: TestInstallation
+  installation: Installation<'v2', true> | Installation<'v2', false>
 ): InstallationQuery<boolean> {
-  return {
-    isEnterpriseInstall: false,
-    enterpriseId: undefined,
-    teamId: installation.team.id,
-  };
+  return isOrganizationWideInstall(installation)
+    ? {
+        isEnterpriseInstall: true,
+        enterpriseId: installation.enterprise?.id,
+        teamId: undefined,
+      }
+    : {
+        isEnterpriseInstall: false,
+        enterpriseId: installation.enterprise?.id,
+        teamId: installation.team?.id,
+      };
 }
 
 function toUserQuery(
-  installation: TestInstallation
+  installation: Installation<'v2', true> | Installation<'v2', false>
 ): InstallationQuery<boolean> {
   return {
     ...toBotQuery(installation),
@@ -224,8 +248,8 @@ function toUserQuery(
 }
 
 function botInstallationOf(
-  installation: Installation<'v2', false>
-): Installation<'v2', false> {
+  installation: Installation<'v2', true> | Installation<'v2', false>
+): Installation<'v2', boolean> {
   const {user, ...rest} = installation;
 
   return {
@@ -424,7 +448,7 @@ describe('DynamoDbInstallationStore', () => {
         expect(fetchedBotTeamB).toEqual(botInstallationOf(installation3));
       });
 
-      it('can query user token and get bot installation instead of  user installation', async () => {
+      it('can query user token and get bot installation instead of user installation', async () => {
         // arrange
         const testData = generateTestData();
         const installation1 = testData.installation.teamA.userA1;
@@ -448,9 +472,9 @@ describe('DynamoDbInstallationStore', () => {
         const installation = testData.installation.teamA.userA1;
 
         // act/assert
-        expect(() =>
+        await expect(() =>
           sut.fetchInstallation(toUserQuery(installation), logger)
-        ).rejects.toThrow();
+        ).rejects.toThrow(/No valid installation found/);
       });
     });
 
@@ -684,6 +708,184 @@ describe('DynamoDbInstallationStore', () => {
         expect(result.user.id).toEqual(userId);
       }
     );
+  });
+
+  describe('Enterprise Grid', () => {
+    const testContext = new TestContext(
+      'bolt-dynamodb-test',
+      dynamoDbClient,
+      'EnterpriseGridTestTable',
+      'PK',
+      'SK',
+      'Installation'
+    );
+
+    const sut = DynamoDbInstallationStore.create({
+      clientId: testContext.slackClientId,
+      dynamoDb: testContext.dynamoDbClient,
+      tableName: testContext.tableName,
+      partitionKeyName: testContext.partitionKeyName,
+      sortKeyName: testContext.sortKeyName,
+      attributeName: testContext.attributeName,
+    });
+
+    beforeEach(async () => {
+      await testContext.recreateTable();
+    });
+
+    describe('Organization-wide installation', () => {
+      it('can store an installation', async () => {
+        // arrange
+        const installation =
+          generateEnterpriseTestData().installation.orgX.teamA.userX1;
+
+        // act
+        await sut.storeInstallation(installation, logger);
+
+        // assert
+        const scanResponse = await testContext.scanTable();
+
+        expect(scanResponse.ScannedCount).toEqual(2);
+        expect(scanResponse.Items).toEqual(
+          expect.arrayContaining([
+            testContext.asItemOfUser(installation),
+            testContext.asItemOfBot(installation),
+          ])
+        );
+      });
+
+      it('can query bot token and get bot installation', async () => {
+        // arrange
+        const installation =
+          generateEnterpriseTestData().installation.orgX.teamA.userX1;
+        await sut.storeInstallation(installation, logger);
+
+        // act
+        const result = await sut.fetchInstallation(toBotQuery(installation));
+
+        // assert
+        expect(result).toStrictEqual(botInstallationOf(installation));
+      });
+
+      it('can query user token and get user installation', async () => {
+        // arrange
+        const installation =
+          generateEnterpriseTestData().installation.orgX.teamA.userX1;
+        await sut.storeInstallation(installation, logger);
+
+        // act
+        const result = await sut.fetchInstallation(toUserQuery(installation));
+
+        // assert
+        expect(result).toStrictEqual(installation);
+      });
+
+      it('can query user token and get bot installation instead of user installation', async () => {
+        // arrange
+        const orgX = generateEnterpriseTestData().installation.orgX;
+        const installationX2 = orgX.teamA.userX2;
+        await sut.storeInstallation(installationX2, logger);
+
+        // act
+        const result = await sut.fetchInstallation(
+          toUserQuery(orgX.teamB.userX1)
+        );
+
+        // assert
+        expect(result).toStrictEqual(botInstallationOf(installationX2));
+      });
+
+      it('can query user token and get user installation even if teamId is specified', async () => {
+        // arrange
+        const installation =
+          generateEnterpriseTestData().installation.orgX.teamA.userX1;
+        await sut.storeInstallation(installation, logger);
+
+        // act
+        const result = await sut.fetchInstallation({
+          ...toUserQuery(installation),
+          teamId: 'team-a',
+        });
+
+        // assert
+        expect(result).toStrictEqual(installation);
+      });
+    });
+
+    describe('Single-workspace installation', () => {
+      it('can store an installation', async () => {
+        // arrange
+        const installation =
+          generateEnterpriseTestData().installation.orgY.teamC.userY1;
+
+        // act
+        await sut.storeInstallation(installation, logger);
+
+        // assert
+        const scanResponse = await testContext.scanTable();
+
+        expect(scanResponse.ScannedCount).toEqual(2);
+        expect(scanResponse.Items).toEqual(
+          expect.arrayContaining([
+            testContext.asItemOfUser(installation),
+            testContext.asItemOfBot(installation),
+          ])
+        );
+      });
+
+      it('can query bot token and get bot installation', async () => {
+        // arrange
+        const installation =
+          generateEnterpriseTestData().installation.orgY.teamC.userY1;
+        await sut.storeInstallation(installation, logger);
+
+        // act
+        const result = await sut.fetchInstallation(toBotQuery(installation));
+
+        // assert
+        expect(result).toStrictEqual(botInstallationOf(installation));
+      });
+
+      it('can query user token and get user installation', async () => {
+        // arrange
+        const installation =
+          generateEnterpriseTestData().installation.orgY.teamC.userY1;
+        await sut.storeInstallation(installation, logger);
+
+        // act
+        const result = await sut.fetchInstallation(toUserQuery(installation));
+
+        // assert
+        expect(result).toStrictEqual(installation);
+      });
+
+      it('can query user token and get bot installation instead of user installation', async () => {
+        // arrange
+        const orgY = generateEnterpriseTestData().installation.orgY;
+        const installationY2 = orgY.teamD.userY2;
+        await sut.storeInstallation(installationY2, logger);
+
+        // act
+        const result = await sut.fetchInstallation(
+          toUserQuery(orgY.teamD.userY1)
+        );
+
+        // assert
+        expect(result).toStrictEqual(botInstallationOf(installationY2));
+      });
+
+      it('cannot get bot installation instead of user installation if user is not the same workspace', async () => {
+        // arrange
+        const orgY = generateEnterpriseTestData().installation.orgY;
+        const installationY2 = orgY.teamD.userY2;
+        await sut.storeInstallation(installationY2, logger);
+
+        // act
+        await expect(() =>
+          sut.fetchInstallation(toUserQuery(orgY.teamC.userY1))
+        ).rejects.toThrow(/No valid installation found/);
+      });
+    });
   });
 });
 
