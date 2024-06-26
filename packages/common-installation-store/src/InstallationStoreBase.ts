@@ -122,7 +122,9 @@ export class InstallationStoreBase<KEY, KEY_FOR_DELETION>
     const args: KeyGeneratorArgs = {
       clientId: this.clientId,
       enterpriseId: query.enterpriseId,
-      teamId: query.teamId,
+      // In definition, teamId in query should be undefined when isEnterpriseInstall is true,
+      // but it is not guaranteed in runtime.
+      teamId: query.isEnterpriseInstall ? undefined : query.teamId,
       userId: undefined,
     };
     const keys: KEY[] = [this.keyGenerator.generate(args)];
