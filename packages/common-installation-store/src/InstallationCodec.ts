@@ -36,7 +36,14 @@ export class JsonInstallationCodec implements InstallationCodec {
   }
 
   decode(data: Buffer): Installation {
-    return JSON.parse(data.toString());
+    const parsed = JSON.parse(data.toString());
+    if (!('team' in parsed)) {
+      parsed.team = undefined;
+    }
+    if (!('enterprise' in parsed)) {
+      parsed.enterprise = undefined;
+    }
+    return parsed;
   }
 }
 

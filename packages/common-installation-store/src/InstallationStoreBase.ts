@@ -140,10 +140,10 @@ export class InstallationStoreBase<KEY, KEY_FOR_DELETION>
       if (user !== undefined) {
         app.user = user.user;
       } else {
-        delete app.user.token;
         delete app.user.refreshToken;
         delete app.user.expiresAt;
-        delete app.user.scopes;
+        app.user.token = undefined;
+        app.user.scopes = undefined;
       }
       return app;
     }
