@@ -15,7 +15,7 @@
     "@aws-sdk/client-dynamodb": "^3.499.0",
     "@codegenie/serverless-express": "^4.13.0",
     "@k11i/bolt-dynamodb": "^1.0.3",
-    "@slack/bolt": "^3.17.1"
+    "@slack/bolt": "^3.20.0"
   },
   "devDependencies": {
     "esbuild": "^0.19.12"
