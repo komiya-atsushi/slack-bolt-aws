@@ -15,12 +15,15 @@
     "url": "https://github.com/komiya-atsushi/slack-bolt-aws/issues"
   },
   "scripts": {
-    "test": "jest --verbose --coverage",
+    "test:jest": "jest --verbose --coverage",
+    "test:attw": "npm --workspaces --if-present run test:attw",
+    "test": "npm run test:jest && npm run test:attw",
     "lint": "gts lint",
     "clean": "gts clean",
     "compile": "tsc",
     "fix": "gts fix",
     "pretest": "npm run compile",
+    "pretest:attw": "npm --workspaces --if-present run compile",
     "posttest": "npm run lint"
   },
   "keywords": [],

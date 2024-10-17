@@ -23,7 +23,8 @@
     "build/src/**/*.{js,d.ts}"
   ],
   "scripts": {
-    "compile": "tsc"
+    "compile": "tsc",
+    "test:attw": "attw --pack ."
   },
   "engines": {
     "node": ">=18"

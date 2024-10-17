@@ -23,7 +23,8 @@
     "build/src/**/*.{js,d.ts}"
   ],
   "scripts": {
-    "compile": "tsc"
+    "compile": "tsc",
+    "test:attw": "attw --pack ."
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.621.0",
