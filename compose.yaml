@@ -1,6 +1,5 @@
 services:
   localstack:
-    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
     image: localstack/localstack:3.0.2
     ports:
       - "127.0.0.1:4566:4566"
