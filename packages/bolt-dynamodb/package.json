@@ -18,16 +18,30 @@
     "slack",
     "dynamodb"
   ],
-  "main": "build/src/index.js",
-  "files": [
-    "build/src/**/*.{js,d.ts}"
-  ],
-  "scripts": {
-    "compile": "tsc",
-    "test:attw": "attw --pack ."
-  },
   "engines": {
     "node": ">=18"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "files": [
+    "dist/*.*"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --sourcemap",
+    "compile": "tsc",
+    "test:attw": "attw --pack ."
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.621.0",

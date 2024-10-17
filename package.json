@@ -20,10 +20,9 @@
     "test": "npm run test:jest && npm run test:attw",
     "lint": "gts lint",
     "clean": "gts clean",
-    "compile": "tsc",
     "fix": "gts fix",
-    "pretest": "npm run compile",
-    "pretest:attw": "npm --workspaces --if-present run compile",
+    "pretest:jest": "npm --workspaces --if-present run compile",
+    "pretest:attw": "npm --workspaces --if-present run build",
     "posttest": "npm run lint"
   },
   "keywords": [],
