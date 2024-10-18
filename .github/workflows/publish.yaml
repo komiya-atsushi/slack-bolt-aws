@@ -14,7 +14,11 @@ on:
           - patch
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yaml
+
   publish:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write
