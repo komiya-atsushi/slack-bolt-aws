@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@slack/logger": "^4.0.0",
-    "@slack/oauth": "^2.6.2"
+    "@slack/oauth": "^2.6.2 || ^3.0.1"
   },
   "license": "MIT"
 }

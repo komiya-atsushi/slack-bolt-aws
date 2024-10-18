@@ -46,6 +46,6 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.621.0",
     "@slack/logger": "^4.0.0",
-    "@slack/oauth": "^2.6.2"
+    "@slack/oauth": "^2.6.2 || ^3.0.1"
   }
 }
