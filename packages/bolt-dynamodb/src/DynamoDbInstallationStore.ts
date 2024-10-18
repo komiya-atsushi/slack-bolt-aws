@@ -1,12 +1,14 @@
 import {Logger} from '@slack/logger';
 import {
   AttributeValue,
+  BatchGetItemCommand,
   BatchGetItemCommandInput,
-  BatchWriteItemCommandInput,
-  DynamoDB,
-  GetItemCommandInput,
+  BatchWriteItemCommand,
+  DynamoDBClient,
+  GetItemCommand,
+  QueryCommand,
   QueryCommandInput,
-  UpdateItemCommandInput,
+  UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import {InstallationCodec, JsonInstallationCodec} from './InstallationCodec';
 import {
@@ -31,7 +33,9 @@ type DeletionOption = 'DELETE_ITEM' | 'DELETE_ATTRIBUTE';
 export interface DynamoDbKeyGenerator
   extends KeyGenerator<DynamoDbKey, DynamoDbDeletionKey> {
   readonly keyAttributeNames: string[];
+
   extractKeyFrom(item: Record<string, AttributeValue>): DynamoDbKey;
+
   equals(key1: DynamoDbKey, key2: DynamoDbKey): boolean;
 }
 
@@ -137,7 +141,7 @@ export class SimpleKeyGenerator implements DynamoDbKeyGenerator {
 
 class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
   constructor(
-    private readonly client: DynamoDB,
+    private readonly client: DynamoDBClient,
     private readonly tableName: string,
     private readonly keyGenerator: DynamoDbKeyGenerator,
     private readonly attributeName: string,
@@ -147,7 +151,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
   }
 
   static async create(
-    client: DynamoDB | Promise<DynamoDB>,
+    client: DynamoDBClient | Promise<DynamoDBClient>,
     tableName: string,
     keyGenerator: DynamoDbKeyGenerator,
     attributeName: string,
@@ -169,20 +173,21 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
     isBotToken: boolean,
     logger?: Logger
   ): Promise<void> {
-    const input: UpdateItemCommandInput = {
-      TableName: this.tableName,
-      Key: key,
-      UpdateExpression: 'SET #attrName = :d',
-      ExpressionAttributeNames: {
-        '#attrName': this.attributeName,
-      },
-      ExpressionAttributeValues: {
-        ':d': {B: data},
-      },
-      ReturnConsumedCapacity: 'TOTAL',
-    };
+    const response = await this.client.send(
+      new UpdateItemCommand({
+        TableName: this.tableName,
+        Key: key,
+        UpdateExpression: 'SET #attrName = :d',
+        ExpressionAttributeNames: {
+          '#attrName': this.attributeName,
+        },
+        ExpressionAttributeValues: {
+          ':d': {B: data},
+        },
+        ReturnConsumedCapacity: 'TOTAL',
+      })
+    );
 
-    const response = await this.client.updateItem(input);
     logger?.debug(
       '[store] UpdateItem consumed capacity',
       response.ConsumedCapacity
@@ -192,17 +197,18 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
   // ---
 
   async fetch(key: DynamoDbKey, logger?: Logger): Promise<Buffer | undefined> {
-    const input: GetItemCommandInput = {
-      TableName: this.tableName,
-      Key: key,
-      ProjectionExpression: '#attrName',
-      ExpressionAttributeNames: {
-        '#attrName': this.attributeName,
-      },
-      ReturnConsumedCapacity: 'TOTAL',
-    };
+    const response = await this.client.send(
+      new GetItemCommand({
+        TableName: this.tableName,
+        Key: key,
+        ProjectionExpression: '#attrName',
+        ExpressionAttributeNames: {
+          '#attrName': this.attributeName,
+        },
+        ReturnConsumedCapacity: 'TOTAL',
+      })
+    );
 
-    const response = await this.client.getItem(input);
     logger?.debug(
       '[fetch] GetItem consumed capacity',
       response.ConsumedCapacity
@@ -258,7 +264,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
       ReturnConsumedCapacity: 'TOTAL',
     };
 
-    const response = await this.client.batchGetItem(input);
+    const response = await this.client.send(new BatchGetItemCommand(input));
     logger?.debug(
       '[fetchMultiple] BatchGetItem consumed capacity',
       response.ConsumedCapacity
@@ -319,14 +325,15 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
   ): Promise<DynamoDbKey[]> {
     const keyAttributeNames = Object.values(key.ExpressionAttributeNames);
 
-    const input: QueryCommandInput = {
-      TableName: this.tableName,
-      ProjectionExpression: keyAttributeNames.join(','),
-      ...key,
-      ReturnConsumedCapacity: 'TOTAL',
-    };
+    const response = await this.client.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        ProjectionExpression: keyAttributeNames.join(','),
+        ...key,
+        ReturnConsumedCapacity: 'TOTAL',
+      })
+    );
 
-    const response = await this.client.query(input);
     logger?.debug(
       '[delete] Query consumed capacity',
       response.ConsumedCapacity
@@ -351,15 +358,15 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
     for (let i = 0; i < keys.length; i += BATCH_WRITE_ITEM_MAX_ITEMS) {
       const chunk = keys.slice(i, i + BATCH_WRITE_ITEM_MAX_ITEMS);
 
-      const input: BatchWriteItemCommandInput = {
-        RequestItems: Object.fromEntries([
-          [this.tableName, chunk.map(key => ({DeleteRequest: {Key: key}}))],
-        ]),
-        ReturnConsumedCapacity: 'TOTAL',
-      };
-
       const promise = this.client
-        .batchWriteItem(input)
+        .send(
+          new BatchWriteItemCommand({
+            RequestItems: Object.fromEntries([
+              [this.tableName, chunk.map(key => ({DeleteRequest: {Key: key}}))],
+            ]),
+            ReturnConsumedCapacity: 'TOTAL',
+          })
+        )
         .then(
           res =>
             logger?.debug(
@@ -380,18 +387,18 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
   ): Promise<void> {
     const promises = [];
     for (const key of keys) {
-      const input: UpdateItemCommandInput = {
-        TableName: this.tableName,
-        Key: key,
-        UpdateExpression: 'REMOVE #attrName',
-        ExpressionAttributeNames: {
-          '#attrName': this.attributeName,
-        },
-        ReturnConsumedCapacity: 'TOTAL',
-      };
-
       const promise = this.client
-        .updateItem(input)
+        .send(
+          new UpdateItemCommand({
+            TableName: this.tableName,
+            Key: key,
+            UpdateExpression: 'REMOVE #attrName',
+            ExpressionAttributeNames: {
+              '#attrName': this.attributeName,
+            },
+            ReturnConsumedCapacity: 'TOTAL',
+          })
+        )
         .then(
           res =>
             logger?.debug(
@@ -431,7 +438,7 @@ export class DynamoDbInstallationStore extends InstallationStoreBase<
 
   static create(args: {
     clientId: string;
-    dynamoDb: Promise<DynamoDB> | DynamoDB;
+    dynamoDb: Promise<DynamoDBClient> | DynamoDBClient;
     tableName: string;
     partitionKeyName: string;
     sortKeyName: string;

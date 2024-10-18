@@ -1,4 +1,11 @@
-import {ListObjectsV2CommandInput, S3} from '@aws-sdk/client-s3';
+import {
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  ListObjectsV2CommandInput,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import {Logger} from '@slack/logger';
 import {InstallationCodec, JsonInstallationCodec} from './InstallationCodec';
 import {
@@ -40,14 +47,14 @@ export class SimpleKeyGenerator implements S3KeyGenerator {
 
 class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
   constructor(
-    private readonly client: S3,
+    private readonly client: S3Client,
     private readonly bucketName: string
   ) {
     super();
   }
 
   static async create(
-    s3: Promise<S3> | S3,
+    s3: Promise<S3Client> | S3Client,
     bucketName: string
   ): Promise<S3Storage> {
     const client = s3 instanceof Promise ? await s3 : s3;
@@ -60,11 +67,13 @@ class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
     isBotToken: boolean,
     logger: Logger | undefined
   ): Promise<void> {
-    const response = await this.client.putObject({
-      Bucket: this.bucketName,
-      Key: key,
-      Body: data,
-    });
+    const response = await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: data,
+      })
+    );
 
     logger?.debug('[store] PutObject response', key, response.$metadata);
   }
@@ -74,10 +83,12 @@ class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
     logger: Logger | undefined
   ): Promise<Buffer | undefined> {
     try {
-      const response = await this.client.getObject({
-        Bucket: this.bucketName,
-        Key: key,
-      });
+      const response = await this.client.send(
+        new GetObjectCommand({
+          Bucket: this.bucketName,
+          Key: key,
+        })
+      );
 
       logger?.debug('[fetch] GetObject response', key, response.$metadata);
 
@@ -101,12 +112,14 @@ class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
 
       logger?.debug('[delete] Going to delete installations', chunk);
 
-      const promise = this.client.deleteObjects({
-        Bucket: this.bucketName,
-        Delete: {
-          Objects: chunk.map(Key => ({Key})),
-        },
-      });
+      const promise = this.client.send(
+        new DeleteObjectsCommand({
+          Bucket: this.bucketName,
+          Delete: {
+            Objects: chunk.map(Key => ({Key})),
+          },
+        })
+      );
 
       promises.push(promise);
     }
@@ -125,7 +138,7 @@ class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
     const result: S3Key[] = [];
     let isTruncated: boolean | undefined;
     do {
-      const response = await this.client.listObjectsV2(input);
+      const response = await this.client.send(new ListObjectsV2Command(input));
 
       input.ContinuationToken = response.NextContinuationToken;
       isTruncated = response.IsTruncated;
@@ -169,7 +182,7 @@ export class S3InstallationStore extends InstallationStoreBase<
 
   static create(args: {
     clientId: string;
-    s3: Promise<S3> | S3;
+    s3: Promise<S3Client> | S3Client;
     bucketName: string;
     options?: {
       historicalDataEnabled?: boolean;

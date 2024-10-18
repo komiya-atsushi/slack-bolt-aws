@@ -2,9 +2,10 @@ import {ConsoleLogger, LogLevel} from '@slack/logger';
 import {Installation, InstallationQuery} from '@slack/oauth';
 import {
   AttributeValue,
-  BatchGetItemCommandInput,
+  BatchGetItemCommand,
   BatchGetItemCommandOutput,
   DynamoDB,
+  DynamoDBClient,
   PutItemCommandInput,
   ScanCommandOutput,
 } from '@aws-sdk/client-dynamodb';
@@ -671,19 +672,23 @@ describe('DynamoDbInstallationStore', () => {
     function setUp(
       ...items: Record<string, AttributeValue>[]
     ): DynamoDbInstallationStore {
-      const mockedBatchGetItem: (
-        args: BatchGetItemCommandInput
-      ) => Promise<BatchGetItemCommandOutput> = jest.fn(() => {
-        return new Promise(resolve =>
-          resolve({
-            Responses: Object.fromEntries([[tableName, items]]),
-          } as BatchGetItemCommandOutput)
-        );
-      });
+      const mockedSend: (command: unknown) => Promise<unknown> = jest.fn(
+        command => {
+          if (!(command instanceof BatchGetItemCommand)) {
+            throw new Error('Unexpected command');
+          }
+
+          return new Promise(resolve =>
+            resolve({
+              Responses: Object.fromEntries([[tableName, items]]),
+            } as BatchGetItemCommandOutput)
+          );
+        }
+      );
 
       const mockedDynamoDbClient = {
-        batchGetItem: mockedBatchGetItem,
-      } as DynamoDB;
+        send: mockedSend,
+      } as DynamoDBClient;
 
       return DynamoDbInstallationStore.create({
         clientId: 'bolt-dynamodb-test',

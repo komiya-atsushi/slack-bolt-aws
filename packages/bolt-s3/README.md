@@ -22,14 +22,12 @@ You also need to install `@aws-sdk/client-s3` package to create an S3 client.
 
 ```typescript
 import {App} from '@slack/bolt';
-import {S3} from '@aws-sdk/client-s3';
+import {S3Client} from '@aws-sdk/client-s3';
 import {S3InstallationStore} from '@k11i/bolt-s3';
-
-const s3 = new S3({ region: 'us-east-2' });
 
 const installationStore = S3InstallationStore.create({
   clientId,
-  s3,
+  s3: new S3Client(),
   // An S3 bucket needs to be created.
   bucketName: 'bucket-name-where-installations-are-stored',
   options: {

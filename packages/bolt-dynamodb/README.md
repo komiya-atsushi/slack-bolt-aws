@@ -22,7 +22,7 @@ You also need to install `@aws-sdk/client-dynamodb` package to create a DynamoDB
 ```typescript
 import {App, ExpressReceiver, LogLevel} from '@slack/bolt';
 import serverlessExpress from '@codegenie/serverless-express';
-import {DynamoDB} from '@aws-sdk/client-dynamodb';
+import {DynamoDBClient} from '@aws-sdk/client-dynamodb';
 import {
   BinaryInstallationCodec,
   DynamoDbInstallationStore,
@@ -38,8 +38,6 @@ function ensureNotUndefined(envName: string): string {
 
 const clientId = ensureNotUndefined('SLACK_CLIENT_ID');
 
-const dynamoDb = new DynamoDB({region: process.env.AWS_REGION});
-
 // You can compress and encrypt Installation using BinaryInstallationCodec.
 const installationCodec = BinaryInstallationCodec.createDefault(
   ensureNotUndefined('INSTALLATION_STORE_ENCRYPTION_PASSWORD'),
@@ -48,7 +46,7 @@ const installationCodec = BinaryInstallationCodec.createDefault(
 
 const installationStore = DynamoDbInstallationStore.create({
   clientId,
-  dynamoDb,
+  dynamoDb: new DynamoDBClient(),
   tableName: ensureNotUndefined('DYNAMODB_TABLE_NAME'),
   // Specify the attribute name of the partition key.
   // In the default implementation, the combined string of Slack client ID,
