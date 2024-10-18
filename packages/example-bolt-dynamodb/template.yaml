@@ -71,14 +71,22 @@ Resources:
             Method: get
             Path: /slack/oauth_redirect
       Timeout: 600
-      PackageType: Image
+      PackageType: Zip
+      Runtime: nodejs20.x
+      Handler: index.handler
+      MemorySize: 200
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref InstallationStoreTable
     Metadata:
-      DockerTag: nodejs20.x-v1
-      DockerContext: ../../
-      Dockerfile: packages/example-bolt-dynamodb/Dockerfile
+      BuildMethod: esbuild
+      BuildProperties:
+        Target: es2022
+        Sourcemap: true
+        Minify: false
+        MainFields: module,main
+        EntryPoints:
+          - src/index.ts
 
 Outputs:
   SlackEventsApiEndpoint:

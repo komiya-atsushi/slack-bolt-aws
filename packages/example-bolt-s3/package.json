@@ -7,9 +7,6 @@
     "url": "https://github.com/komiya-atsushi"
   },
   "license": "MIT",
-  "scripts": {
-    "build": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=build/index.js"
-  },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.481.0",
     "@codegenie/serverless-express": "^4.13.0",
