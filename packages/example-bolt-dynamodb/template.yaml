@@ -25,7 +25,6 @@ Globals:
         SLACK_CLIENT_SECRET: !Ref ClientSecret
         SLACK_SIGNING_SECRET: !Ref SigningSecret
         SLACK_STATE_SECRET: !Ref StateSecret
-        REGION: !Ref AWS::Region
         INSTALLATION_STORE_ENCRYPTION_PASSWORD: !Ref InstallationEncryptionPassword
         INSTALLATION_STORE_ENCRYPTION_SALT: !Ref InstallationEncryptionSalt
 

@@ -11,8 +11,6 @@ Parameters:
     Type: String
   StateSecret:
     Type: String
-  S3Region:
-    Type: String
   InstallationEncryptionPassword:
     Type: String
   InstallationEncryptionSalt:
@@ -27,15 +25,12 @@ Globals:
         SLACK_CLIENT_SECRET: !Ref ClientSecret
         SLACK_SIGNING_SECRET: !Ref SigningSecret
         SLACK_STATE_SECRET: !Ref StateSecret
-        S3_REGION: !Ref S3Region
         S3_INSTALLATION_STORE_ENCRYPTION_PASSWORD: !Ref InstallationEncryptionPassword
         S3_INSTALLATION_STORE_ENCRYPTION_SALT: !Ref InstallationEncryptionSalt
 
 Resources:
   S3InstallationStore:
     Type: AWS::S3::Bucket
-    Properties:
-      BucketName: bolt-s3-example-app
 
   SlackEventReceiver:
     Type: AWS::Serverless::Function

@@ -1,6 +1,6 @@
 import {App, ExpressReceiver, LogLevel} from '@slack/bolt';
 import serverlessExpress from '@codegenie/serverless-express';
-import {S3} from '@aws-sdk/client-s3';
+import {S3Client} from '@aws-sdk/client-s3';
 import {BinaryInstallationCodec, S3InstallationStore} from '@k11i/bolt-s3';
 
 function ensureNotUndefined(envName: string): string {
@@ -13,8 +13,6 @@ function ensureNotUndefined(envName: string): string {
 
 const clientId = ensureNotUndefined('SLACK_CLIENT_ID');
 
-const s3Client = new S3({region: process.env.S3_REGION});
-
 const installationCodec = BinaryInstallationCodec.createDefault(
   ensureNotUndefined('S3_INSTALLATION_STORE_ENCRYPTION_PASSWORD'),
   ensureNotUndefined('S3_INSTALLATION_STORE_ENCRYPTION_SALT')
@@ -22,7 +20,7 @@ const installationCodec = BinaryInstallationCodec.createDefault(
 
 const installationStore = S3InstallationStore.create({
   clientId,
-  s3: s3Client,
+  s3: new S3Client(),
   bucketName: ensureNotUndefined('S3_BUCKET_NAME'),
   options: {
     historicalDataEnabled: true,
