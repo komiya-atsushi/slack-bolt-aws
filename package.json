@@ -1,6 +1,6 @@
 {
   "name": "slack-bolt-aws",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "AWS integrations for Bolt JS",
   "author": {
     "name": "KOMIYA Atsushi",
