@@ -14,7 +14,7 @@
     "@slack/bolt": "^4.0.0"
   },
   "devDependencies": {
-    "esbuild": "^0.19.12"
+    "esbuild": "^0.25.10"
   },
   "private": true
 }
