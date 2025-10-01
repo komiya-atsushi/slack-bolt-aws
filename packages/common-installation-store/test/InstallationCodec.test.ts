@@ -20,7 +20,7 @@ describe('BinaryInstallationCodec', () => {
     const codec = BinaryInstallationCodec.createDefault('password', 'salt');
     const anotherPasswordCodec = BinaryInstallationCodec.createDefault(
       'PASSWORD',
-      'salt'
+      'salt',
     );
 
     describe('BinaryInstallationCodec.encode()', () => {

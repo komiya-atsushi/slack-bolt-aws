@@ -1,20 +1,23 @@
-import {Logger} from '@slack/logger';
 import {
-  AttributeValue,
+  type AttributeValue,
   BatchGetItemCommand,
-  BatchGetItemCommandInput,
+  type BatchGetItemCommandInput,
   BatchWriteItemCommand,
-  DynamoDBClient,
+  type DynamoDBClient,
   GetItemCommand,
   QueryCommand,
-  QueryCommandInput,
+  type QueryCommandInput,
   UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
-import {InstallationCodec, JsonInstallationCodec} from './InstallationCodec';
+import type {Logger} from '@slack/logger';
+import {
+  type InstallationCodec,
+  JsonInstallationCodec,
+} from './InstallationCodec';
 import {
   InstallationStoreBase,
-  KeyGenerator,
-  KeyGeneratorArgs,
+  type KeyGenerator,
+  type KeyGeneratorArgs,
   StorageBase,
 } from './InstallationStoreBase';
 
@@ -44,14 +47,14 @@ export class SimpleKeyGenerator implements DynamoDbKeyGenerator {
 
   private constructor(
     private readonly partitionKeyName: string,
-    private readonly sortKeyName: string
+    private readonly sortKeyName: string,
   ) {
     this.keyAttributeNames = [partitionKeyName, sortKeyName];
   }
 
   static create(
     partitionKeyName = 'PK',
-    sortKeyName = 'SK'
+    sortKeyName = 'SK',
   ): SimpleKeyGenerator {
     return new SimpleKeyGenerator(partitionKeyName, sortKeyName);
   }
@@ -110,7 +113,7 @@ export class SimpleKeyGenerator implements DynamoDbKeyGenerator {
 
   private generateSortKey(
     args: KeyGeneratorArgs & {historyVersion?: string},
-    forDeletion: boolean
+    forDeletion: boolean,
   ): string {
     const parts = [
       'Type#Token',
@@ -126,7 +129,7 @@ export class SimpleKeyGenerator implements DynamoDbKeyGenerator {
 
   private sortKeyUserPart(
     userId: string | undefined,
-    forDeletion: boolean
+    forDeletion: boolean,
   ): string {
     if (userId === undefined && forDeletion) {
       return 'User#';
@@ -145,7 +148,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
     private readonly tableName: string,
     private readonly keyGenerator: DynamoDbKeyGenerator,
     private readonly attributeName: string,
-    private readonly deletionOption: DeletionOption
+    private readonly deletionOption: DeletionOption,
   ) {
     super();
   }
@@ -155,7 +158,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
     tableName: string,
     keyGenerator: DynamoDbKeyGenerator,
     attributeName: string,
-    deletionOption: DeletionOption = 'DELETE_ITEM'
+    deletionOption: DeletionOption = 'DELETE_ITEM',
   ): Promise<DynamoDbStorage> {
     const client_ = client instanceof Promise ? await client : client;
     return new DynamoDbStorage(
@@ -163,15 +166,15 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
       tableName,
       keyGenerator,
       attributeName,
-      deletionOption
+      deletionOption,
     );
   }
 
   async store(
     key: DynamoDbKey,
     data: Buffer,
-    isBotToken: boolean,
-    logger?: Logger
+    _isBotToken: boolean,
+    logger?: Logger,
   ): Promise<void> {
     const response = await this.client.send(
       new UpdateItemCommand({
@@ -185,12 +188,12 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
           ':d': {B: data},
         },
         ReturnConsumedCapacity: 'TOTAL',
-      })
+      }),
     );
 
     logger?.debug(
       '[store] UpdateItem consumed capacity',
-      response.ConsumedCapacity
+      response.ConsumedCapacity,
     );
   }
 
@@ -206,12 +209,12 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
           '#attrName': this.attributeName,
         },
         ReturnConsumedCapacity: 'TOTAL',
-      })
+      }),
     );
 
     logger?.debug(
       '[fetch] GetItem consumed capacity',
-      response.ConsumedCapacity
+      response.ConsumedCapacity,
     );
 
     if (response.Item === undefined) {
@@ -223,7 +226,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
   }
 
   private extractInstallation(
-    item: Record<string, AttributeValue>
+    item: Record<string, AttributeValue>,
   ): Buffer | undefined {
     const b = item[this.attributeName]?.B;
     return b ? Buffer.from(b) : undefined;
@@ -233,7 +236,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
 
   async fetchMultiple(
     keys: DynamoDbKey[],
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<(Buffer | undefined)[]> {
     if (keys.length === 1) {
       return [await this.fetch(keys[0], logger)];
@@ -242,7 +245,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
     const entries = this.keyGenerator.keyAttributeNames.map(
       (attrName, index) => {
         return [`#key${index}`, attrName];
-      }
+      },
     );
 
     const input: BatchGetItemCommandInput = {
@@ -251,9 +254,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
           this.tableName,
           {
             Keys: keys,
-            ProjectionExpression: `#inst, ${entries
-              .map(([expAttrName]) => expAttrName)
-              .join(', ')}`,
+            ProjectionExpression: `#inst, ${entries.map(([expAttrName]) => expAttrName).join(', ')}`,
             ExpressionAttributeNames: {
               '#inst': this.attributeName,
               ...Object.fromEntries(entries),
@@ -267,7 +268,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
     const response = await this.client.send(new BatchGetItemCommand(input));
     logger?.debug(
       '[fetchMultiple] BatchGetItem consumed capacity',
-      response.ConsumedCapacity
+      response.ConsumedCapacity,
     );
 
     if (
@@ -305,7 +306,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
 
   async delete(
     key: DynamoDbDeletionKey,
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<void> {
     const keysToDelete = await this.listKeysToDelete(key, logger);
 
@@ -321,7 +322,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
 
   private async listKeysToDelete(
     key: DynamoDbDeletionKey,
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<DynamoDbKey[]> {
     const keyAttributeNames = Object.values(key.ExpressionAttributeNames);
 
@@ -331,12 +332,12 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
         ProjectionExpression: keyAttributeNames.join(','),
         ...key,
         ReturnConsumedCapacity: 'TOTAL',
-      })
+      }),
     );
 
     logger?.debug(
       '[delete] Query consumed capacity',
-      response.ConsumedCapacity
+      response.ConsumedCapacity,
     );
 
     const items = response.Items ?? [];
@@ -345,12 +346,12 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
       return [];
     }
 
-    return items.map(item => this.keyGenerator.extractKeyFrom(item));
+    return items.map((item) => this.keyGenerator.extractKeyFrom(item));
   }
 
   private async deleteItems(
     keys: DynamoDbKey[],
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<void> {
     const BATCH_WRITE_ITEM_MAX_ITEMS = 25;
 
@@ -362,17 +363,19 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
         .send(
           new BatchWriteItemCommand({
             RequestItems: Object.fromEntries([
-              [this.tableName, chunk.map(key => ({DeleteRequest: {Key: key}}))],
+              [
+                this.tableName,
+                chunk.map((key) => ({DeleteRequest: {Key: key}})),
+              ],
             ]),
             ReturnConsumedCapacity: 'TOTAL',
-          })
+          }),
         )
-        .then(
-          res =>
-            logger?.debug(
-              '[delete] BatchWriteItem consumed capacity',
-              res.ConsumedCapacity
-            )
+        .then((res) =>
+          logger?.debug(
+            '[delete] BatchWriteItem consumed capacity',
+            res.ConsumedCapacity,
+          ),
         );
 
       promises.push(promise);
@@ -383,7 +386,7 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
 
   private async deleteAttributes(
     keys: DynamoDbKey[],
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<void> {
     const promises = [];
     for (const key of keys) {
@@ -397,14 +400,13 @@ class DynamoDbStorage extends StorageBase<DynamoDbKey, DynamoDbDeletionKey> {
               '#attrName': this.attributeName,
             },
             ReturnConsumedCapacity: 'TOTAL',
-          })
+          }),
         )
-        .then(
-          res =>
-            logger?.debug(
-              '[delete] UpdateItem consumed capacity',
-              res.ConsumedCapacity
-            )
+        .then((res) =>
+          logger?.debug(
+            '[delete] UpdateItem consumed capacity',
+            res.ConsumedCapacity,
+          ),
         );
 
       promises.push(promise);
@@ -425,14 +427,14 @@ export class DynamoDbInstallationStore extends InstallationStoreBase<
     options?: {
       historicalDataEnabled?: boolean;
       installationCodec?: InstallationCodec;
-    }
+    },
   ) {
     super(
       clientId,
       keyGenerator,
       storage,
       options?.installationCodec ?? JsonInstallationCodec.INSTANCE,
-      !!options?.historicalDataEnabled
+      !!options?.historicalDataEnabled,
     );
   }
 
@@ -451,21 +453,21 @@ export class DynamoDbInstallationStore extends InstallationStoreBase<
   }): DynamoDbInstallationStore {
     const keyGenerator = SimpleKeyGenerator.create(
       args.partitionKeyName,
-      args.sortKeyName
+      args.sortKeyName,
     );
     const storage = DynamoDbStorage.create(
       args.dynamoDb,
       args.tableName,
       keyGenerator,
       args.attributeName,
-      args.deletionOption
+      args.deletionOption,
     );
 
     return new DynamoDbInstallationStore(
       args.clientId,
       keyGenerator,
       storage,
-      args.options
+      args.options,
     );
   }
 }

@@ -18,9 +18,9 @@
     "test:jest": "jest --verbose --coverage",
     "test:attw": "npm --workspaces --if-present run test:attw",
     "test": "npm run test:jest && npm run test:attw",
-    "lint": "gts lint",
+    "lint": "npx @biomejs/biome check",
     "clean": "gts clean",
-    "fix": "gts fix",
+    "fix": "npx @biomejs/biome check --write",
     "pretest:jest": "npm --workspaces --if-present run compile",
     "pretest:attw": "npm --workspaces --if-present run build",
     "posttest": "npm run lint"
@@ -28,6 +28,7 @@
   "keywords": [],
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.16.4",
+    "@biomejs/biome": "^2.2.4",
     "@tsconfig/node20": "^20.1.6",
     "@types/jest": "^29.5.11",
     "@types/node": "18.19.3",

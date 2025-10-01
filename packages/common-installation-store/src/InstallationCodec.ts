@@ -1,6 +1,6 @@
-import {Installation} from '@slack/oauth';
-import * as zlib from 'node:zlib';
 import * as crypto from 'node:crypto';
+import * as zlib from 'node:zlib';
+import type {Installation} from '@slack/oauth';
 
 interface Encryption {
   password: string;
@@ -63,7 +63,7 @@ export class BinaryInstallationCodec implements InstallationCodec {
 
   static createDefault(
     password: string,
-    salt: string
+    salt: string,
   ): BinaryInstallationCodec {
     return new BinaryInstallationCodec({
       encryption: {
@@ -114,7 +114,7 @@ export class BinaryInstallationCodec implements InstallationCodec {
 
   private prepareKey(
     encryption: NonNullable<BinaryInstallationCodecOptions['encryption']>,
-    keyLength: number
+    keyLength: number,
   ): Buffer {
     if (this.key) {
       return this.key;
@@ -123,7 +123,7 @@ export class BinaryInstallationCodec implements InstallationCodec {
     this.key = crypto.scryptSync(
       encryption.password,
       encryption.salt,
-      keyLength
+      keyLength,
     );
 
     return this.key;
@@ -154,7 +154,7 @@ export class BinaryInstallationCodec implements InstallationCodec {
         return data.subarray(1);
       default:
         throw new Error(
-          `Detected compression algorithm that is not supported: ${code}`
+          `Detected compression algorithm that is not supported: ${code}`,
         );
     }
   }
@@ -163,6 +163,12 @@ export class BinaryInstallationCodec implements InstallationCodec {
     const algorithmNameLength = data.readUint8(0);
     if (algorithmNameLength === 0) {
       return data.subarray(1);
+    }
+
+    if (this.options.encryption === undefined) {
+      throw new Error(
+        'Password/salt must be configured to decrypt the encrypted data',
+      );
     }
 
     let pos = 1;
@@ -181,7 +187,7 @@ export class BinaryInstallationCodec implements InstallationCodec {
 
     const encryptedData = data.subarray(pos);
 
-    const key = this.prepareKey(this.options.encryption!, keyLength);
+    const key = this.prepareKey(this.options.encryption, keyLength);
 
     const decipher = crypto.createDecipheriv(algorithm, key, iv);
     return Buffer.concat([decipher.update(encryptedData), decipher.final()]);
@@ -196,7 +202,7 @@ export class BinaryInstallationCodec implements InstallationCodec {
         return this.decodeV1(raw.subarray(1));
       default:
         throw new Error(
-          `Detected format version that is not supported: ${firstByte}`
+          `Detected format version that is not supported: ${firstByte}`,
         );
     }
   }

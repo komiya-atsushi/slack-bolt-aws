@@ -1,4 +1,4 @@
-import {Installation} from '@slack/oauth/';
+import type {Installation} from '@slack/oauth/';
 
 export const installation: Installation<'v2', false> = {
   team: {

@@ -1,10 +1,10 @@
-import {App, ExpressReceiver, LogLevel} from '@slack/bolt';
-import serverlessExpress from '@codegenie/serverless-express';
 import {DynamoDBClient} from '@aws-sdk/client-dynamodb';
+import serverlessExpress from '@codegenie/serverless-express';
 import {
   BinaryInstallationCodec,
   DynamoDbInstallationStore,
 } from '@k11i/bolt-dynamodb';
+import {App, ExpressReceiver, LogLevel} from '@slack/bolt';
 
 function ensureNotUndefined(envName: string): string {
   const result = process.env[envName];
@@ -18,7 +18,7 @@ const clientId = ensureNotUndefined('SLACK_CLIENT_ID');
 
 const installationCodec = BinaryInstallationCodec.createDefault(
   ensureNotUndefined('INSTALLATION_STORE_ENCRYPTION_PASSWORD'),
-  ensureNotUndefined('INSTALLATION_STORE_ENCRYPTION_SALT')
+  ensureNotUndefined('INSTALLATION_STORE_ENCRYPTION_SALT'),
 );
 
 const installationStore = DynamoDbInstallationStore.create({
@@ -68,13 +68,13 @@ app.event('tokens_revoked', async ({context, event, logger}) => {
   }
 
   const promises = userIds
-    .map(userId => ({
+    .map((userId) => ({
       teamId: context.teamId,
       enterpriseId: context.enterpriseId,
       userId: userId,
       isEnterpriseInstall: context.isEnterpriseInstall,
     }))
-    .map(query => installationStore.deleteInstallation(query, logger));
+    .map((query) => installationStore.deleteInstallation(query, logger));
 
   await Promise.all(promises);
 });
@@ -86,7 +86,7 @@ app.event('app_uninstalled', async ({context, logger}) => {
       enterpriseId: context.enterpriseId,
       isEnterpriseInstall: context.isEnterpriseInstall,
     },
-    logger
+    logger,
   );
 });
 

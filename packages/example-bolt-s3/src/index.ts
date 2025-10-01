@@ -1,7 +1,7 @@
-import {App, ExpressReceiver, LogLevel} from '@slack/bolt';
-import serverlessExpress from '@codegenie/serverless-express';
 import {S3Client} from '@aws-sdk/client-s3';
+import serverlessExpress from '@codegenie/serverless-express';
 import {BinaryInstallationCodec, S3InstallationStore} from '@k11i/bolt-s3';
+import {App, ExpressReceiver, LogLevel} from '@slack/bolt';
 
 function ensureNotUndefined(envName: string): string {
   const result = process.env[envName];
@@ -15,7 +15,7 @@ const clientId = ensureNotUndefined('SLACK_CLIENT_ID');
 
 const installationCodec = BinaryInstallationCodec.createDefault(
   ensureNotUndefined('S3_INSTALLATION_STORE_ENCRYPTION_PASSWORD'),
-  ensureNotUndefined('S3_INSTALLATION_STORE_ENCRYPTION_SALT')
+  ensureNotUndefined('S3_INSTALLATION_STORE_ENCRYPTION_SALT'),
 );
 
 const installationStore = S3InstallationStore.create({
@@ -63,13 +63,13 @@ app.event('tokens_revoked', async ({context, event, logger}) => {
   }
 
   const promises = userIds
-    .map(userId => ({
+    .map((userId) => ({
       teamId: context.teamId,
       enterpriseId: context.enterpriseId,
       userId: userId,
       isEnterpriseInstall: context.isEnterpriseInstall,
     }))
-    .map(query => installationStore.deleteInstallation(query, logger));
+    .map((query) => installationStore.deleteInstallation(query, logger));
 
   await Promise.all(promises);
 });
@@ -81,7 +81,7 @@ app.event('app_uninstalled', async ({context, logger}) => {
       enterpriseId: context.enterpriseId,
       isEnterpriseInstall: context.isEnterpriseInstall,
     },
-    logger
+    logger,
   );
 });
 

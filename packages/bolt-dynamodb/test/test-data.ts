@@ -1,4 +1,4 @@
-import {Installation} from '@slack/oauth/';
+import type {Installation} from '@slack/oauth/';
 
 export type TestInstallation = Installation<'v2', false>;
 export type OrgTestInstallation = Installation<'v2', true>;

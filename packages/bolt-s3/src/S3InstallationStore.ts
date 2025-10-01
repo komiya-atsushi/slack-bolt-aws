@@ -2,16 +2,19 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   ListObjectsV2Command,
-  ListObjectsV2CommandInput,
+  type ListObjectsV2CommandInput,
   PutObjectCommand,
-  S3Client,
+  type S3Client,
 } from '@aws-sdk/client-s3';
-import {Logger} from '@slack/logger';
-import {InstallationCodec, JsonInstallationCodec} from './InstallationCodec';
+import type {Logger} from '@slack/logger';
+import {
+  type InstallationCodec,
+  JsonInstallationCodec,
+} from './InstallationCodec';
 import {
   InstallationStoreBase,
-  KeyGenerator,
-  KeyGeneratorArgs,
+  type KeyGenerator,
+  type KeyGeneratorArgs,
   StorageBase,
 } from './InstallationStoreBase';
 
@@ -26,9 +29,7 @@ export class SimpleKeyGenerator implements S3KeyGenerator {
   }
 
   generate(args: KeyGeneratorArgs & {historyVersion?: string}): string {
-    const base = `${args.clientId}/${args.enterpriseId ?? 'none'}-${
-      args.teamId ?? 'none'
-    }`;
+    const base = `${args.clientId}/${args.enterpriseId ?? 'none'}-${args.teamId ?? 'none'}`;
     const historyVersion = args.historyVersion ?? 'latest';
     return args.userId !== undefined
       ? `${base}/installer-${args.userId}-${historyVersion}`
@@ -36,9 +37,7 @@ export class SimpleKeyGenerator implements S3KeyGenerator {
   }
 
   generateForDeletion(args: KeyGeneratorArgs): string {
-    const base = `${args.clientId}/${args.enterpriseId ?? 'none'}-${
-      args.teamId ?? 'none'
-    }`;
+    const base = `${args.clientId}/${args.enterpriseId ?? 'none'}-${args.teamId ?? 'none'}`;
     return args.userId !== undefined
       ? `${base}/installer-${args.userId}-`
       : `${base}/installer-`;
@@ -48,14 +47,14 @@ export class SimpleKeyGenerator implements S3KeyGenerator {
 class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
   constructor(
     private readonly client: S3Client,
-    private readonly bucketName: string
+    private readonly bucketName: string,
   ) {
     super();
   }
 
   static async create(
     s3: Promise<S3Client> | S3Client,
-    bucketName: string
+    bucketName: string,
   ): Promise<S3Storage> {
     const client = s3 instanceof Promise ? await s3 : s3;
     return new S3Storage(client, bucketName);
@@ -64,15 +63,15 @@ class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
   async store(
     key: S3Key,
     data: Buffer,
-    isBotToken: boolean,
-    logger: Logger | undefined
+    _isBotToken: boolean,
+    logger: Logger | undefined,
   ): Promise<void> {
     const response = await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucketName,
         Key: key,
         Body: data,
-      })
+      }),
     );
 
     logger?.debug('[store] PutObject response', key, response.$metadata);
@@ -80,21 +79,21 @@ class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
 
   async fetch(
     key: S3Key,
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<Buffer | undefined> {
     try {
       const response = await this.client.send(
         new GetObjectCommand({
           Bucket: this.bucketName,
           Key: key,
-        })
+        }),
       );
 
       logger?.debug('[fetch] GetObject response', key, response.$metadata);
 
       const byteArray = await response.Body?.transformToByteArray();
       return byteArray !== undefined ? Buffer.from(byteArray) : undefined;
-    } catch (e) {
+    } catch (_e) {
       logger?.debug('Object not found', key);
       return undefined;
     }
@@ -116,9 +115,9 @@ class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
         new DeleteObjectsCommand({
           Bucket: this.bucketName,
           Delete: {
-            Objects: chunk.map(Key => ({Key})),
+            Objects: chunk.map((Key) => ({Key})),
           },
-        })
+        }),
       );
 
       promises.push(promise);
@@ -129,7 +128,7 @@ class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
 
   private async listKeysToDelete(
     key: S3DeletionKey,
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<S3Key[]> {
     const input: ListObjectsV2CommandInput = {
       Bucket: this.bucketName,
@@ -148,8 +147,8 @@ class S3Storage extends StorageBase<S3Key, S3DeletionKey> {
       if (response.Contents) {
         result.push(
           ...response.Contents.map(({Key}) => Key).filter(
-            (key): key is string => typeof key === 'string'
-          )
+            (key): key is string => typeof key === 'string',
+          ),
         );
       }
     } while (isTruncated);
@@ -169,14 +168,14 @@ export class S3InstallationStore extends InstallationStoreBase<
     options?: {
       historicalDataEnabled?: boolean;
       installationCodec?: InstallationCodec;
-    }
+    },
   ) {
     super(
       clientId,
       keyGenerator,
       storage,
       options?.installationCodec ?? JsonInstallationCodec.INSTANCE,
-      !!options?.historicalDataEnabled
+      !!options?.historicalDataEnabled,
     );
   }
 
@@ -197,7 +196,7 @@ export class S3InstallationStore extends InstallationStoreBase<
       args.clientId,
       keyGenerator,
       storage,
-      args.options
+      args.options,
     );
   }
 }

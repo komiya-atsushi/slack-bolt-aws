@@ -1,19 +1,19 @@
-import {ConsoleLogger, LogLevel} from '@slack/logger';
-import {Installation, InstallationQuery} from '@slack/oauth';
 import {
-  AttributeValue,
+  type AttributeValue,
   BatchGetItemCommand,
-  BatchGetItemCommandOutput,
+  type BatchGetItemCommandOutput,
   DynamoDB,
-  DynamoDBClient,
-  PutItemCommandInput,
-  ScanCommandOutput,
+  type DynamoDBClient,
+  type PutItemCommandInput,
+  type ScanCommandOutput,
 } from '@aws-sdk/client-dynamodb';
+import {ConsoleLogger, LogLevel} from '@slack/logger';
+import type {Installation, InstallationQuery} from '@slack/oauth';
 import {DynamoDbInstallationStore, SimpleKeyGenerator} from '../src';
 import {
   generateEnterpriseTestData,
   generateTestData,
-  TestInstallation,
+  type TestInstallation,
 } from './test-data';
 
 const logger = new ConsoleLogger();
@@ -29,7 +29,7 @@ const dynamoDbClient = new DynamoDB({
 });
 
 function isOrganizationWideInstall(
-  installation: Installation<'v2', boolean>
+  installation: Installation<'v2', boolean>,
 ): installation is Installation<'v2', true> {
   return installation.isEnterpriseInstall ?? false;
 }
@@ -41,7 +41,7 @@ class TestContext {
     readonly tableName: string,
     readonly partitionKeyName: string,
     readonly sortKeyName: string,
-    readonly attributeName: string
+    readonly attributeName: string,
   ) {}
 
   async recreateTable(): Promise<void> {
@@ -87,7 +87,7 @@ class TestContext {
   }
 
   expectedPartitionKey(
-    installation: Installation<'v2', true> | Installation<'v2', false>
+    installation: Installation<'v2', true> | Installation<'v2', false>,
   ): string {
     if (isOrganizationWideInstall(installation)) {
       return `Client#${this.slackClientId}$Enterprise#${installation.enterprise.id}$Team#none`;
@@ -112,7 +112,7 @@ class TestContext {
   }
 
   asItemOfUser(
-    installation: Installation<'v2', true> | Installation<'v2', false>
+    installation: Installation<'v2', true> | Installation<'v2', false>,
   ): Record<string, AttributeValue> {
     const key = Object.fromEntries([
       [this.partitionKeyName, {S: this.expectedPartitionKey(installation)}],
@@ -126,7 +126,7 @@ class TestContext {
   }
 
   asItemOfBot(
-    installation: Installation<'v2', true> | Installation<'v2', false>
+    installation: Installation<'v2', true> | Installation<'v2', false>,
   ): Record<string, AttributeValue> {
     const key = Object.fromEntries([
       [this.partitionKeyName, {S: this.expectedPartitionKey(installation)}],
@@ -140,7 +140,7 @@ class TestContext {
   }
 
   extractInstallationAttributeValue(
-    item: Record<string, AttributeValue>
+    item: Record<string, AttributeValue> | undefined,
   ): AttributeValue | undefined {
     if (Array.isArray(this.attributeName)) {
       const lastIndex = this.attributeName.length - 1;
@@ -148,21 +148,21 @@ class TestContext {
 
       for (let i = 0; i < lastIndex; i++) {
         const attrName = this.attributeName[i];
-        const attrVal = current[attrName];
+        const attrVal = current?.[attrName];
         if (attrVal === undefined || attrVal.M === undefined) {
           return undefined;
         }
         current = attrVal.M;
       }
 
-      return current[this.attributeName[lastIndex]];
+      return current?.[this.attributeName[lastIndex]];
     }
 
-    return item[this.attributeName];
+    return item?.[this.attributeName];
   }
 
   decodeJsonInstallation(
-    item: Record<string, AttributeValue>
+    item: Record<string, AttributeValue>,
   ): TestInstallation {
     const attrVal = this.extractInstallationAttributeValue(item);
     if (attrVal === undefined) {
@@ -171,7 +171,7 @@ class TestContext {
 
     if (attrVal.B === undefined) {
       throw new Error(
-        `Data type of the attribute '${this.attributeName}' is not binary`
+        `Data type of the attribute '${this.attributeName}' is not binary`,
       );
     }
 
@@ -181,7 +181,7 @@ class TestContext {
 
   findItems(
     items: Record<string, AttributeValue>[],
-    conditions: [string, string][]
+    conditions: [string, string][],
   ): (Record<string, AttributeValue> | undefined)[] {
     const result: (Record<string, AttributeValue> | undefined)[] = [];
 
@@ -213,18 +213,18 @@ class TestContext {
 
   findInstallationsFromItems(
     items: Record<string, AttributeValue>[],
-    conditions: [string, string][]
+    conditions: [string, string][],
   ): (TestInstallation | undefined)[] {
-    return this.findItems(items, conditions).map(itemOrUndefined =>
+    return this.findItems(items, conditions).map((itemOrUndefined) =>
       itemOrUndefined
         ? this.decodeJsonInstallation(itemOrUndefined)
-        : itemOrUndefined
+        : itemOrUndefined,
     );
   }
 }
 
 function toBotQuery(
-  installation: Installation<'v2', true> | Installation<'v2', false>
+  installation: Installation<'v2', true> | Installation<'v2', false>,
 ): InstallationQuery<boolean> {
   return isOrganizationWideInstall(installation)
     ? {
@@ -240,7 +240,7 @@ function toBotQuery(
 }
 
 function toUserQuery(
-  installation: Installation<'v2', true> | Installation<'v2', false>
+  installation: Installation<'v2', true> | Installation<'v2', false>,
 ): InstallationQuery<boolean> {
   return {
     ...toBotQuery(installation),
@@ -249,7 +249,7 @@ function toUserQuery(
 }
 
 function botInstallationOf(
-  installation: Installation<'v2', true> | Installation<'v2', false>
+  installation: Installation<'v2', true> | Installation<'v2', false>,
 ): Installation<'v2', boolean> {
   const {user, ...rest} = installation;
 
@@ -273,7 +273,7 @@ describe('DynamoDbInstallationStore', () => {
       'BasicOperationTestTable',
       'PK',
       'SK',
-      'Installation'
+      'Installation',
     );
 
     const sut = DynamoDbInstallationStore.create({
@@ -305,12 +305,12 @@ describe('DynamoDbInstallationStore', () => {
           expect.arrayContaining([
             testContext.asItemOfUser(installation),
             testContext.asItemOfBot(installation),
-          ])
+          ]),
         );
 
         const items = scanResponse.Items as Record<string, AttributeValue>[];
-        const installations = items.map(item =>
-          testContext.decodeJsonInstallation(item)
+        const installations = items.map((item) =>
+          testContext.decodeJsonInstallation(item),
         );
 
         expect(installations[0]).toEqual(installation);
@@ -336,7 +336,7 @@ describe('DynamoDbInstallationStore', () => {
             testContext.asItemOfUser(installation1),
             testContext.asItemOfUser(installation2),
             testContext.asItemOfBot(installation2),
-          ])
+          ]),
         );
 
         const [user1Installation, user2Installation, botInstallation] =
@@ -371,7 +371,7 @@ describe('DynamoDbInstallationStore', () => {
             testContext.asItemOfUser(installation3),
             testContext.asItemOfBot(installation1),
             testContext.asItemOfBot(installation3),
-          ])
+          ]),
         );
 
         const [
@@ -408,15 +408,15 @@ describe('DynamoDbInstallationStore', () => {
         // act
         const fetchedUser1 = await sut.fetchInstallation(
           toUserQuery(installation1),
-          logger
+          logger,
         );
         const fetchedUser2 = await sut.fetchInstallation(
           toUserQuery(installation2),
-          logger
+          logger,
         );
         const fetchedUser3 = await sut.fetchInstallation(
           toUserQuery(installation3),
-          logger
+          logger,
         );
 
         // assert
@@ -437,11 +437,11 @@ describe('DynamoDbInstallationStore', () => {
         // act
         const fetchedBotTeamA = await sut.fetchInstallation(
           toBotQuery(installation1),
-          logger
+          logger,
         );
         const fetchedBotTeamB = await sut.fetchInstallation(
           toBotQuery(installation3),
-          logger
+          logger,
         );
 
         // assert
@@ -460,7 +460,7 @@ describe('DynamoDbInstallationStore', () => {
         // act
         const fetch = await sut.fetchInstallation(
           toUserQuery(installation2),
-          logger
+          logger,
         );
 
         // assert
@@ -474,7 +474,7 @@ describe('DynamoDbInstallationStore', () => {
 
         // act/assert
         await expect(() =>
-          sut.fetchInstallation(toUserQuery(installation), logger)
+          sut.fetchInstallation(toUserQuery(installation), logger),
         ).rejects.toThrow(/No valid installation found/);
       });
     });
@@ -499,12 +499,12 @@ describe('DynamoDbInstallationStore', () => {
           expect.arrayContaining([
             testContext.asItemOfUser(installation2),
             testContext.asItemOfBot(installation2),
-          ])
+          ]),
         );
 
         const items = scanResponse.Items as Record<string, AttributeValue>[];
-        const installations = items.map(item =>
-          testContext.decodeJsonInstallation(item)
+        const installations = items.map((item) =>
+          testContext.decodeJsonInstallation(item),
         );
 
         expect(installations[0]).toEqual(installation2);
@@ -531,12 +531,12 @@ describe('DynamoDbInstallationStore', () => {
           expect.arrayContaining([
             testContext.asItemOfUser(installation3),
             testContext.asItemOfBot(installation3),
-          ])
+          ]),
         );
 
         const items = scanResponse.Items as Record<string, AttributeValue>[];
-        const installations = items.map(item =>
-          testContext.decodeJsonInstallation(item)
+        const installations = items.map((item) =>
+          testContext.decodeJsonInstallation(item),
         );
 
         expect(installations[0]).toEqual(installation3);
@@ -592,7 +592,7 @@ describe('DynamoDbInstallationStore', () => {
         'DeleteAttributeTestTable',
         'PK',
         'SK',
-        'Installation'
+        'Installation',
       );
 
       const sut = DynamoDbInstallationStore.create({
@@ -630,12 +630,12 @@ describe('DynamoDbInstallationStore', () => {
 
         expect(user).not.toBeUndefined();
         expect(
-          testContext.extractInstallationAttributeValue(user!)
+          testContext.extractInstallationAttributeValue(user),
         ).toBeUndefined();
 
         expect(bot).not.toBeUndefined();
         expect(
-          testContext.extractInstallationAttributeValue(bot!)
+          testContext.extractInstallationAttributeValue(bot),
         ).not.toBeUndefined();
       });
     });
@@ -673,17 +673,17 @@ describe('DynamoDbInstallationStore', () => {
       ...items: Record<string, AttributeValue>[]
     ): DynamoDbInstallationStore {
       const mockedSend: (command: unknown) => Promise<unknown> = jest.fn(
-        command => {
+        (command) => {
           if (!(command instanceof BatchGetItemCommand)) {
             throw new Error('Unexpected command');
           }
 
-          return new Promise(resolve =>
+          return new Promise((resolve) =>
             resolve({
               Responses: Object.fromEntries([[tableName, items]]),
-            } as BatchGetItemCommandOutput)
+            } as BatchGetItemCommandOutput),
           );
-        }
+        },
       );
 
       const mockedDynamoDbClient = {
@@ -702,7 +702,7 @@ describe('DynamoDbInstallationStore', () => {
 
     test.each([[[itemOfUser, itemOfBot]], [[itemOfBot, itemOfUser]]])(
       'fetchInstallation() handles BatchGetItem response regardless of item order',
-      async items => {
+      async (items) => {
         // arrange
         const sut = setUp(...items);
 
@@ -711,7 +711,7 @@ describe('DynamoDbInstallationStore', () => {
 
         // assert
         expect(result.user.id).toEqual(userId);
-      }
+      },
     );
   });
 
@@ -722,7 +722,7 @@ describe('DynamoDbInstallationStore', () => {
       'EnterpriseGridTestTable',
       'PK',
       'SK',
-      'Installation'
+      'Installation',
     );
 
     const sut = DynamoDbInstallationStore.create({
@@ -755,7 +755,7 @@ describe('DynamoDbInstallationStore', () => {
           expect.arrayContaining([
             testContext.asItemOfUser(installation),
             testContext.asItemOfBot(installation),
-          ])
+          ]),
         );
       });
 
@@ -793,7 +793,7 @@ describe('DynamoDbInstallationStore', () => {
 
         // act
         const result = await sut.fetchInstallation(
-          toUserQuery(orgX.teamB.userX1)
+          toUserQuery(orgX.teamB.userX1),
         );
 
         // assert
@@ -834,7 +834,7 @@ describe('DynamoDbInstallationStore', () => {
           expect.arrayContaining([
             testContext.asItemOfUser(installation),
             testContext.asItemOfBot(installation),
-          ])
+          ]),
         );
       });
 
@@ -872,7 +872,7 @@ describe('DynamoDbInstallationStore', () => {
 
         // act
         const result = await sut.fetchInstallation(
-          toUserQuery(orgY.teamD.userY1)
+          toUserQuery(orgY.teamD.userY1),
         );
 
         // assert
@@ -887,7 +887,7 @@ describe('DynamoDbInstallationStore', () => {
 
         // act
         await expect(() =>
-          sut.fetchInstallation(toUserQuery(orgY.teamC.userY1))
+          sut.fetchInstallation(toUserQuery(orgY.teamC.userY1)),
         ).rejects.toThrow(/No valid installation found/);
       });
     });
@@ -907,7 +907,7 @@ describe('SimpleKeyGenerator', () => {
         {
           PK: {S: 'PartitionKey-0'},
           SK: {S: 'SortKey-0'},
-        }
+        },
       );
 
       expect(result).toEqual(true);
@@ -922,7 +922,7 @@ describe('SimpleKeyGenerator', () => {
         {
           PK: {S: 'PartitionKey-99999'},
           SK: {S: 'SortKey-0'},
-        }
+        },
       );
       expect(result).toEqual(false);
     });
@@ -936,7 +936,7 @@ describe('SimpleKeyGenerator', () => {
         {
           PK: {S: 'PartitionKey-0'},
           SK: {S: 'SortKey-99999'},
-        }
+        },
       );
 
       expect(result).toEqual(false);
@@ -951,7 +951,7 @@ describe('SimpleKeyGenerator', () => {
         {
           PK: {N: '0'},
           SK: {S: 'SortKey-0'},
-        }
+        },
       );
 
       expect(result).toEqual(false);
@@ -966,7 +966,7 @@ describe('SimpleKeyGenerator', () => {
         {
           PK: {S: 'PartitionKey-0'},
           SK: {N: '0'},
-        }
+        },
       );
 
       expect(result).toEqual(false);

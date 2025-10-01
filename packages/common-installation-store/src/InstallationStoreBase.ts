@@ -1,6 +1,10 @@
-import {Logger} from '@slack/logger';
-import {Installation, InstallationQuery, InstallationStore} from '@slack/oauth';
-import {InstallationCodec} from './InstallationCodec';
+import type {Logger} from '@slack/logger';
+import type {
+  Installation,
+  InstallationQuery,
+  InstallationStore,
+} from '@slack/oauth';
+import type {InstallationCodec} from './InstallationCodec';
 
 export interface KeyGeneratorArgs {
   clientId: string;
@@ -19,12 +23,12 @@ export interface Storage<KEY, KEY_FOR_DELETION> {
     key: KEY,
     data: Buffer,
     isBotToken: boolean,
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<void>;
   fetch(key: KEY, logger: Logger | undefined): Promise<Buffer | undefined>;
   fetchMultiple(
     keys: KEY[],
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<(Buffer | undefined)[]>;
   delete(key: KEY_FOR_DELETION, logger: Logger | undefined): Promise<void>;
 }
@@ -36,22 +40,22 @@ export abstract class StorageBase<KEY, KEY_FOR_DELETION>
     key: KEY,
     data: Buffer,
     isBotToken: boolean,
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<void>;
   abstract fetch(
     key: KEY,
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<Buffer | undefined>;
   abstract delete(
     key: KEY_FOR_DELETION,
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<void>;
 
   async fetchMultiple(
     keys: KEY[],
-    logger: Logger | undefined
+    logger: Logger | undefined,
   ): Promise<(Buffer | undefined)[]> {
-    return await Promise.all(keys.map(key => this.fetch(key, logger)));
+    return await Promise.all(keys.map((key) => this.fetch(key, logger)));
   }
 }
 
@@ -63,12 +67,12 @@ export class InstallationStoreBase<KEY, KEY_FOR_DELETION>
     private readonly keyGenerator: KeyGenerator<KEY, KEY_FOR_DELETION>,
     private readonly storage: Promise<Storage<KEY, KEY_FOR_DELETION>>,
     private readonly codec: InstallationCodec,
-    private readonly historicalDataEnabled: boolean
+    private readonly historicalDataEnabled: boolean,
   ) {}
 
   async storeInstallation<AuthVersion extends 'v1' | 'v2'>(
     installation: Installation<AuthVersion, boolean>,
-    logger?: Logger
+    logger?: Logger,
   ): Promise<void> {
     const argsForBot: KeyGeneratorArgs & {historyVersion?: string} = {
       clientId: this.clientId,
@@ -90,7 +94,7 @@ export class InstallationStoreBase<KEY, KEY_FOR_DELETION>
         this.keyGenerator.generate(argsForUser),
         data,
         false,
-        logger
+        logger,
       ),
     ];
 
@@ -101,14 +105,14 @@ export class InstallationStoreBase<KEY, KEY_FOR_DELETION>
           this.keyGenerator.generate({...argsForBot, historyVersion}),
           data,
           true,
-          logger
+          logger,
         ),
         storage.store(
           this.keyGenerator.generate({...argsForUser, historyVersion}),
           data,
           false,
-          logger
-        )
+          logger,
+        ),
       );
     }
 
@@ -117,7 +121,7 @@ export class InstallationStoreBase<KEY, KEY_FOR_DELETION>
 
   async fetchInstallation(
     query: InstallationQuery<boolean>,
-    logger?: Logger
+    logger?: Logger,
   ): Promise<Installation<'v1' | 'v2', boolean>> {
     const args: KeyGeneratorArgs = {
       clientId: this.clientId,
@@ -134,8 +138,8 @@ export class InstallationStoreBase<KEY, KEY_FOR_DELETION>
     }
 
     const storage = await this.storage;
-    const [app, user] = (await storage.fetchMultiple(keys, logger)).map(data =>
-      data ? this.codec.decode(data) : undefined
+    const [app, user] = (await storage.fetchMultiple(keys, logger)).map(
+      (data) => (data ? this.codec.decode(data) : undefined),
     );
 
     if (app !== undefined) {
@@ -155,13 +159,13 @@ export class InstallationStoreBase<KEY, KEY_FOR_DELETION>
     }
 
     throw new Error(
-      `No valid installation found: query = ${JSON.stringify(query)}`
+      `No valid installation found: query = ${JSON.stringify(query)}`,
     );
   }
 
   async deleteInstallation(
     query: InstallationQuery<boolean>,
-    logger?: Logger
+    logger?: Logger,
   ): Promise<void> {
     const key = this.keyGenerator.generateForDeletion({
       clientId: this.clientId,

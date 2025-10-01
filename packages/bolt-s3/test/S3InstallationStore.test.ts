@@ -1,10 +1,10 @@
-import {Installation} from '@slack/oauth';
-import {ConsoleLogger, LogLevel} from '@slack/logger';
 import {
-  DeleteObjectsCommandInput,
-  ListObjectsV2CommandInput,
+  type DeleteObjectsCommandInput,
+  type ListObjectsV2CommandInput,
   S3,
 } from '@aws-sdk/client-s3';
+import {ConsoleLogger, LogLevel} from '@slack/logger';
+import type {Installation} from '@slack/oauth';
 import {BinaryInstallationCodec, S3InstallationStore} from '../src';
 import {installation} from './test-data';
 
@@ -22,7 +22,7 @@ logger.setLevel(LogLevel.DEBUG);
 
 const installationCodec = BinaryInstallationCodec.createDefault(
   'test-password',
-  'test-salt'
+  'test-salt',
 );
 
 const slackClientId = 'slack-client-id';
@@ -58,11 +58,11 @@ async function deleteObjects(keyPrefix: string): Promise<void> {
     isTruncated = response.IsTruncated;
 
     const objects = response.Contents?.map(({Key}) => ({Key}))?.filter(
-      (o): o is {Key: string} => o.Key !== undefined
+      (o): o is {Key: string} => o.Key !== undefined,
     );
 
-    if (objects) {
-      deleteCommand.Delete!.Objects = objects;
+    if (objects && deleteCommand.Delete !== undefined) {
+      deleteCommand.Delete.Objects = objects;
       await s3Client.deleteObjects(deleteCommand);
     }
   } while (isTruncated);
@@ -82,7 +82,7 @@ async function listObjectKeys(keyPrefix: string): Promise<string[]> {
     isTruncated = response.IsTruncated;
 
     const keys = response.Contents?.map(({Key}) => Key)?.filter(
-      (key): key is string => key !== undefined
+      (key): key is string => key !== undefined,
     );
 
     if (keys) {
@@ -132,12 +132,12 @@ describe('S3InstallationStore', () => {
             `${slackClientId}/none-${teamId}/installer-latest`,
             `${slackClientId}/none-${teamId}/installer-${userId}-latest`,
             expect.stringMatching(
-              `${slackClientId}/none-${teamId}/installer-\\d+`
+              `${slackClientId}/none-${teamId}/installer-\\d+`,
             ),
             expect.stringMatching(
-              `${slackClientId}/none-${teamId}/installer-${userId}-\\d+`
+              `${slackClientId}/none-${teamId}/installer-${userId}-\\d+`,
             ),
-          ])
+          ]),
         );
       });
 
@@ -147,12 +147,12 @@ describe('S3InstallationStore', () => {
         await sut.storeInstallation(anotherInstallation, logger);
 
         const data = await getObject(
-          `${slackClientId}/none-${teamId}/installer-latest`
+          `${slackClientId}/none-${teamId}/installer-latest`,
         );
 
         expect(data).not.toBeUndefined();
 
-        const decoded = installationCodec.decode(data!);
+        const decoded = installationCodec.decode(data as Buffer);
         expect(decoded.user.id).toStrictEqual(anotherUserId);
       });
     });
@@ -167,7 +167,7 @@ describe('S3InstallationStore', () => {
             teamId,
             isEnterpriseInstall: false,
           },
-          logger
+          logger,
         );
 
         const {user: _ignore1, ...fetchedWithoutUser} = fetched;
@@ -206,7 +206,7 @@ describe('S3InstallationStore', () => {
             userId,
             isEnterpriseInstall: false,
           },
-          logger
+          logger,
         );
         const fetchedAnotherUser = await sut.fetchInstallation(
           {
@@ -215,7 +215,7 @@ describe('S3InstallationStore', () => {
             userId: anotherUserId,
             isEnterpriseInstall: false,
           },
-          logger
+          logger,
         );
 
         expect(fetched).toEqual(installation);
@@ -232,8 +232,8 @@ describe('S3InstallationStore', () => {
                 userId: 'user-id-does-not-exist',
                 isEnterpriseInstall: false,
               },
-              logger
-            )
+              logger,
+            ),
         ).rejects.toThrow();
       });
     });
@@ -250,7 +250,7 @@ describe('S3InstallationStore', () => {
             userId,
             isEnterpriseInstall: false,
           },
-          logger
+          logger,
         );
 
         const keys = await listObjectKeys(`${slackClientId}/`);
@@ -261,21 +261,21 @@ describe('S3InstallationStore', () => {
             `${slackClientId}/none-${teamId}/installer-latest`,
             `${slackClientId}/none-${teamId}/installer-${anotherUserId}-latest`,
             expect.stringMatching(
-              `${slackClientId}/none-${teamId}/installer-\\d+`
+              `${slackClientId}/none-${teamId}/installer-\\d+`,
             ),
             expect.stringMatching(
-              `${slackClientId}/none-${teamId}/installer-${anotherUserId}-\\d+`
+              `${slackClientId}/none-${teamId}/installer-${anotherUserId}-\\d+`,
             ),
-          ])
+          ]),
         );
 
         expect(keys).not.toEqual(
           expect.arrayContaining([
             `${slackClientId}/none-${teamId}/installer-${userId}-latest`,
             expect.stringMatching(
-              `${slackClientId}/none-${teamId}/installer-${userId}-\\d+`
+              `${slackClientId}/none-${teamId}/installer-${userId}-\\d+`,
             ),
-          ])
+          ]),
         );
       });
 
@@ -288,7 +288,7 @@ describe('S3InstallationStore', () => {
             teamId,
             isEnterpriseInstall: false,
           },
-          logger
+          logger,
         );
 
         const keys = await listObjectKeys(`${slackClientId}/`);
@@ -330,7 +330,7 @@ describe('S3InstallationStore', () => {
           expect.arrayContaining([
             `${slackClientId}/none-${teamId}/installer-latest`,
             `${slackClientId}/none-${teamId}/installer-${userId}-latest`,
-          ])
+          ]),
         );
       });
     });
