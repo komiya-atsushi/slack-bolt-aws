@@ -61,3 +61,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: git push
       - run: git push origin "v${{ steps.get-version-string.outputs.version }}"
+
+  purge-camo-cache:
+    needs: publish
+    uses: ./.github/workflows/purge-camo-cache.yaml
