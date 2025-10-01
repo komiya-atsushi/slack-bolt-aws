@@ -15,12 +15,12 @@
     "url": "https://github.com/komiya-atsushi/slack-bolt-aws/issues"
   },
   "scripts": {
-    "test:jest": "jest --verbose --coverage",
+    "test:vitest": "vitest --run",
     "test:attw": "npm --workspaces --if-present run test:attw",
-    "test": "npm run test:jest && npm run test:attw",
+    "test": "npm run test:vitest && npm run test:attw",
     "lint": "npx @biomejs/biome check",
     "fix": "npx @biomejs/biome check --write",
-    "pretest:jest": "npm --workspaces --if-present run compile",
+    "pretest:vitest": "npm --workspaces --if-present run compile",
     "pretest:attw": "npm --workspaces --if-present run build",
     "posttest": "npm run lint"
   },

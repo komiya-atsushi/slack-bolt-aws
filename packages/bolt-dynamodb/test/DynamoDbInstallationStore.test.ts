@@ -9,6 +9,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import {ConsoleLogger, LogLevel} from '@slack/logger';
 import type {Installation, InstallationQuery} from '@slack/oauth';
+import {beforeEach, describe, expect, it, test, vi} from 'vitest';
 import {DynamoDbInstallationStore, SimpleKeyGenerator} from '../src';
 import {
   generateEnterpriseTestData,
@@ -672,7 +673,7 @@ describe('DynamoDbInstallationStore', () => {
     function setUp(
       ...items: Record<string, AttributeValue>[]
     ): DynamoDbInstallationStore {
-      const mockedSend: (command: unknown) => Promise<unknown> = jest.fn(
+      const mockedSend: (command: unknown) => Promise<unknown> = vi.fn(
         (command) => {
           if (!(command instanceof BatchGetItemCommand)) {
             throw new Error('Unexpected command');

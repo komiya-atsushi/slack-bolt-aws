@@ -5,6 +5,7 @@ import {
 } from '@aws-sdk/client-s3';
 import {ConsoleLogger, LogLevel} from '@slack/logger';
 import type {Installation} from '@slack/oauth';
+import {beforeEach, describe, expect, test} from 'vitest';
 import {BinaryInstallationCodec, S3InstallationStore} from '../src';
 import {installation} from './test-data';
 
