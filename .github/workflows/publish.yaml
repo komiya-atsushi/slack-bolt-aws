@@ -27,12 +27,12 @@ jobs:
       - uses: actions/checkout@v5.0.0
       - uses: actions/setup-node@v5.0.0
         with:
-          node-version: 18
+          node-version: 20
           registry-url: 'https://registry.npmjs.org'
+      - name: Update npm (Ensure npm 11.5.1 or later is installed)
+        run: npm install -g npm@latest
       - name: Verify npmjs access token (this step will fail if the token has expired)
         run: npm whoami
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Configure git
         run: |
           git config --global user.name 'github-actions[bot]'
@@ -57,8 +57,6 @@ jobs:
       - run: git tag "v${{ steps.get-version-string.outputs.version }}"
       - run: npm ci
       - run: make publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: git push
       - run: git push origin "v${{ steps.get-version-string.outputs.version }}"
 
