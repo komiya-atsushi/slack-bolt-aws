@@ -28,6 +28,7 @@
   "keywords": [],
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.16.4",
+    "@tsconfig/node20": "^20.1.6",
     "@types/jest": "^29.5.11",
     "@types/node": "18.19.3",
     "gts": "^5.2.0",
