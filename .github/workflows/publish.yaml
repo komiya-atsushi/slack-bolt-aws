@@ -31,8 +31,6 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - name: Update npm (Ensure npm 11.5.1 or later is installed)
         run: npm install -g npm@latest
-      - name: Verify npmjs access token (this step will fail if the token has expired)
-        run: npm whoami
       - name: Configure git
         run: |
           git config --global user.name 'github-actions[bot]'
