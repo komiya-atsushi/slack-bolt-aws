@@ -1,6 +1,6 @@
 {
   "name": "@k11i/bolt-dynamodb",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "DynamoDB-backed InstallationStore implementation for bolt-js",
   "author": {
     "name": "KOMIYA Atsushi",
