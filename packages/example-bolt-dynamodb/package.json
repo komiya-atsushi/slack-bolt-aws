@@ -8,7 +8,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.499.0",
+    "@aws-sdk/client-dynamodb": "^3.993.0",
     "@codegenie/serverless-express": "^4.13.0",
     "@k11i/bolt-dynamodb": "^1.0.3",
     "@slack/bolt": "^4.6.0"
