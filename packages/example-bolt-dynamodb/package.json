@@ -13,8 +13,5 @@
     "@k11i/bolt-dynamodb": "^1.0.3",
     "@slack/bolt": "^4.6.0"
   },
-  "devDependencies": {
-    "esbuild": "^0.25.10"
-  },
   "private": true
 }
