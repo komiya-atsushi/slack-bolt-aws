@@ -36,7 +36,7 @@
     "vitest": "^4.0.4"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "workspaces": [
     "packages/bolt-s3",
