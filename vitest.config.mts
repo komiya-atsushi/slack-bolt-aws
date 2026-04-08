@@ -6,11 +6,7 @@ export default defineConfig({
     coverage: {
       provider: 'istanbul',
     },
-    poolOptions: {
-      threads: {
-        singleThread: true
-      }
-    },
+    maxWorkers: 1,
     fileParallelism: false,
   }
 });
