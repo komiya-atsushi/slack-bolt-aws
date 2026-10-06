@@ -9,10 +9,21 @@ test:
 	npm run check
 	docker compose down
 
+BOLT_MAJORS ?= 3 4 5
+
+compat:
+	docker compose up -d
+	docker compose exec localstack /home/localstack/wait-for-localstack.sh
+	node compat/run.mts $(BOLT_MAJORS)
+	docker compose down
+
+compat-lock:
+	node compat/update-lock.mts
+
 publish:
 	npm -w packages/bolt-s3 run build
 	npm -w packages/bolt-s3 publish --provenance --access public
 	npm -w packages/bolt-dynamodb run build
 	npm -w packages/bolt-dynamodb publish --provenance --access public
 
-.PHONY: clean test publish
+.PHONY: clean test compat compat-lock publish

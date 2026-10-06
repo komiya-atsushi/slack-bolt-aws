@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**/*.ts", "!**/build", "!**/dist"]
+    "includes": ["**/*.ts", "compat/**/*.mts", "!**/build", "!**/dist"]
   },
   "formatter": {
     "enabled": true,
