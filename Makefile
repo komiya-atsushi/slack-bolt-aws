@@ -6,7 +6,7 @@ clean:
 test:
 	docker compose up -d
 	docker compose exec localstack /home/localstack/wait-for-localstack.sh
-	npm run test
+	npm run check
 	docker compose down
 
 publish:
