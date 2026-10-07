@@ -44,8 +44,22 @@
     "test:attw": "attw --pack ."
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1014.0",
+    "@aws-sdk/client-s3": "^3.1014.0"
+  },
+  "peerDependencies": {
     "@slack/logger": "^4.0.0",
     "@slack/oauth": "^2.6.2 || ^3.0.1"
+  },
+  "peerDependenciesMeta": {
+    "@slack/logger": {
+      "optional": true
+    },
+    "@slack/oauth": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@slack/logger": "^4.0.0",
+    "@slack/oauth": "^3.0.1"
   }
 }
