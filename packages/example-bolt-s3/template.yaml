@@ -65,14 +65,8 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Ref S3InstallationStore
     Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Target: es2022
-        Sourcemap: true
-        Minify: false
-        MainFields: module,main
-        EntryPoints:
-          - src/index.ts
+      # Built by the build-SlackEventReceiver target in Makefile.
+      BuildMethod: makefile
 
 Outputs:
   SlackEventsApiEndpoint:
