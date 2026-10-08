@@ -6,18 +6,33 @@ This package provides a DynamoDB-backed InstallationStore implementation with a 
 
 ## Features
 
-- Encryption using node:crypto module.
+- Encryption with AES-256-CTR (the key is derived with scrypt) using the `node:crypto` module.
 - Compression with Brotli.
+- Optionally keeps the history of installations (`historicalDataEnabled`).
+
+## Requirements
+
+- Node.js 22 or later
+- [Bolt for JavaScript](https://github.com/slackapi/bolt-js) (`@slack/bolt`) v3, v4, or v5
+
+`@slack/oauth` and `@slack/logger` are optional peer dependencies of this package, so the versions installed with `@slack/bolt` are shared instead of installing separate copies.
 
 ## Installation
 
 ```bash
 npm install @k11i/bolt-dynamodb
+
+# Your app also needs Bolt for JavaScript and the DynamoDB client of the AWS SDK.
+npm install \
+  @slack/bolt \
+  @aws-sdk/client-dynamodb
 ```
 
-You also need to install `@aws-sdk/client-dynamodb` package to create a DynamoDB client.
-
 ## Basic usage
+
+The DynamoDB table must have a partition key and a sort key, both of type String.
+Their attribute names can be configured with `partitionKeyName` and `sortKeyName`.
+See [template.yaml of the example](https://github.com/komiya-atsushi/slack-bolt-aws/blob/main/packages/example-bolt-dynamodb/template.yaml) for a table definition.
 
 ```typescript
 import {App, ExpressReceiver, LogLevel} from '@slack/bolt';
@@ -73,7 +88,6 @@ const expressReceiver = new ExpressReceiver({
   installationStore,
   installerOptions: {
     directInstall: true,
-    stateVerification: false,
   },
   processBeforeResponse: true,
 });
@@ -97,6 +111,8 @@ app.message(async ({message, client}) => {
 
 export const handler = serverlessExpress({app: expressReceiver.app});
 ```
+
+A complete example running on AWS Lambda (deployed with AWS SAM) is available in [packages/example-bolt-dynamodb](https://github.com/komiya-atsushi/slack-bolt-aws/tree/main/packages/example-bolt-dynamodb).
 
 ## License
 

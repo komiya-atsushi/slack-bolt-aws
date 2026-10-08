@@ -38,7 +38,6 @@ const expressReceiver = new ExpressReceiver({
   installationStore,
   installerOptions: {
     directInstall: true,
-    stateVerification: false,
   },
   processBeforeResponse: true,
 });
