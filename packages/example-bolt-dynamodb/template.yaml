@@ -71,7 +71,7 @@ Resources:
             Path: /slack/oauth_redirect
       Timeout: 600
       PackageType: Zip
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
       Handler: index.handler
       MemorySize: 200
       Policies:
