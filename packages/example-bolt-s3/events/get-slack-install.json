@@ -1,0 +1,56 @@
+{
+  "resource": "/slack/install",
+  "path": "/slack/install",
+  "httpMethod": "GET",
+  "headers": {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Host": "1234567890.execute-api.us-east-1.amazonaws.com",
+    "User-Agent": "Custom User Agent String",
+    "X-Forwarded-For": "127.0.0.1, 127.0.0.2",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": [
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+    ],
+    "Host": [
+      "1234567890.execute-api.us-east-1.amazonaws.com"
+    ],
+    "User-Agent": [
+      "Custom User Agent String"
+    ],
+    "X-Forwarded-For": [
+      "127.0.0.1, 127.0.0.2"
+    ],
+    "X-Forwarded-Port": [
+      "443"
+    ],
+    "X-Forwarded-Proto": [
+      "https"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "accountId": "123456789012",
+    "apiId": "1234567890",
+    "resourceId": "123456",
+    "stage": "Prod",
+    "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+    "requestTime": "09/Apr/2015:12:34:56 +0000",
+    "requestTimeEpoch": 1428582896000,
+    "path": "/Prod/slack/install",
+    "resourcePath": "/slack/install",
+    "httpMethod": "GET",
+    "protocol": "HTTP/1.1",
+    "identity": {
+      "sourceIp": "127.0.0.1",
+      "userAgent": "Custom User Agent String"
+    }
+  },
+  "body": null,
+  "isBase64Encoded": false
+}
