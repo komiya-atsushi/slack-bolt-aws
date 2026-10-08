@@ -11,14 +11,14 @@ test:
 
 BOLT_MAJORS ?= 3 4 5
 
-compat:
+compatibility-test:
 	docker compose up -d
 	docker compose exec localstack /home/localstack/wait-for-localstack.sh
-	node compat/run.mts $(BOLT_MAJORS)
+	node compatibility-test/run.mts $(BOLT_MAJORS)
 	docker compose down
 
-compat-lock:
-	node compat/update-lock.mts
+compatibility-test-lock:
+	node compatibility-test/update-lock.mts
 
 publish:
 	npm -w packages/bolt-s3 run build
@@ -26,4 +26,4 @@ publish:
 	npm -w packages/bolt-dynamodb run build
 	npm -w packages/bolt-dynamodb publish --provenance --access public
 
-.PHONY: clean test compat compat-lock publish
+.PHONY: clean test compatibility-test compatibility-test-lock publish

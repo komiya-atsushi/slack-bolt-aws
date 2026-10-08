@@ -46,7 +46,7 @@ export function describeInstallationStore(
 ): void {
   describe(name, () => {
     test('works as the installation store of @slack/bolt', async () => {
-      const clientId = `compat-${randomUUID()}`;
+      const clientId = `test-${randomUUID()}`;
       const installationStore = createInstallationStore(clientId);
 
       const receiver = new ExpressReceiver({

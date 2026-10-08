@@ -22,8 +22,8 @@ for (const [format, {BinaryInstallationCodec, S3InstallationStore}] of [
       bucketName: 'bolt-s3-test',
       options: {
         installationCodec: BinaryInstallationCodec.createDefault(
-          'compat-password',
-          'compat-salt',
+          'test-password',
+          'test-salt',
         ),
       },
     }),

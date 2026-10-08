@@ -1,10 +1,10 @@
 {
-  "name": "compat",
+  "name": "compatibility-test",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
-      "name": "compat",
+      "name": "compatibility-test",
       "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.1147.0",
         "@aws-sdk/client-s3": "^3.1147.0",

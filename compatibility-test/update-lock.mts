@@ -1,7 +1,8 @@
-// Regenerates compat/package-lock.template.json from
-// compat/package.template.json, resolving the latest versions in the ranges.
+// Regenerates compatibility-test/package-lock.template.json from
+// compatibility-test/package.template.json, resolving the latest versions in
+// the ranges.
 //
-// Usage: node compat/update-lock.mts
+// Usage: node compatibility-test/update-lock.mts
 //
 // The files are not named package.json / package-lock.json so that the
 // dependency graph of GitHub (and thus Dependabot) ignores them.
@@ -11,12 +12,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const compatDir = import.meta.dirname;
+const testDir = import.meta.dirname;
 
-const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'compat-lock-'));
+const workDir = fs.mkdtempSync(
+  path.join(os.tmpdir(), 'compatibility-test-lock-'),
+);
 try {
   fs.cpSync(
-    path.join(compatDir, 'package.template.json'),
+    path.join(testDir, 'package.template.json'),
     path.join(workDir, 'package.json'),
   );
   childProcess.execFileSync(
@@ -32,7 +35,7 @@ try {
   );
   fs.cpSync(
     path.join(workDir, 'package-lock.json'),
-    path.join(compatDir, 'package-lock.template.json'),
+    path.join(testDir, 'package-lock.template.json'),
   );
 } finally {
   fs.rmSync(workDir, {recursive: true, force: true});

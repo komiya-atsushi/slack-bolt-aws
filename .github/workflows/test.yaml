@@ -19,7 +19,7 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  compat:
+  compatibility-test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -31,4 +31,4 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: make compat BOLT_MAJORS=${{ matrix.bolt }}
+      - run: make compatibility-test BOLT_MAJORS=${{ matrix.bolt }}

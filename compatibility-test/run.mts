@@ -1,17 +1,19 @@
 // Verifies that the packed @k11i/bolt-s3 and @k11i/bolt-dynamodb work in a
 // consumer project together with each given major version of @slack/bolt.
 //
-// Usage: node compat/run.mts <bolt-major>...  (LocalStack must be running)
+// Usage: node compatibility-test/run.mts <bolt-major>...
+//        (LocalStack must be running)
 //
-// Set COMPAT_KEEP_WORK_DIR=1 to keep the consumer projects for debugging.
+// Set COMPATIBILITY_TEST_KEEP_WORK_DIR=1 to keep the consumer projects for
+// debugging.
 
 import childProcess from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const compatDir = import.meta.dirname;
-const rootDir = path.dirname(compatDir);
+const testDir = import.meta.dirname;
+const rootDir = path.dirname(testDir);
 
 const packages = ['@k11i/bolt-s3', '@k11i/bolt-dynamodb'];
 const sharedDependencies = ['@slack/oauth', '@slack/logger'];
@@ -107,7 +109,7 @@ function verify(boltMajor: string, workDir: string, tarballs: string[]): void {
   // the dependency graph of GitHub (and thus Dependabot) ignores them.
   const projectDir = path.join(workDir, `bolt-${boltMajor}`);
   fs.mkdirSync(projectDir);
-  fs.cpSync(path.join(compatDir, 'src'), path.join(projectDir, 'src'), {
+  fs.cpSync(path.join(testDir, 'src'), path.join(projectDir, 'src'), {
     recursive: true,
   });
   for (const [from, to] of [
@@ -115,7 +117,7 @@ function verify(boltMajor: string, workDir: string, tarballs: string[]): void {
     ['package.template.json', 'package.json'],
     ['package-lock.template.json', 'package-lock.json'],
   ]) {
-    fs.cpSync(path.join(compatDir, from), path.join(projectDir, to));
+    fs.cpSync(path.join(testDir, from), path.join(projectDir, to));
   }
 
   console.log(`==> ${label} Installing dependencies`);
@@ -141,14 +143,14 @@ function verify(boltMajor: string, workDir: string, tarballs: string[]): void {
 
 const boltMajors = process.argv.slice(2);
 if (boltMajors.length === 0) {
-  console.error('Usage: node compat/run.mts <bolt-major>...');
+  console.error('Usage: node compatibility-test/run.mts <bolt-major>...');
   process.exit(2);
 }
 
 // The consumer projects must live outside this repository so that module
 // resolution never falls back to the repository's node_modules.
-const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'compat-'));
-const keepWorkDir = process.env.COMPAT_KEEP_WORK_DIR === '1';
+const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'compatibility-test-'));
+const keepWorkDir = process.env.COMPATIBILITY_TEST_KEEP_WORK_DIR === '1';
 if (keepWorkDir) {
   console.log(`Keeping work directory: ${workDir}`);
 }

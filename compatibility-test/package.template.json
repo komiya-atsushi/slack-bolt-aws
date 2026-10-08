@@ -1,5 +1,5 @@
 {
-  "name": "compat",
+  "name": "compatibility-test",
   "private": true,
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1147.0",
