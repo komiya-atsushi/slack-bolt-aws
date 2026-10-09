@@ -14,5 +14,16 @@ jobs:
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          urls=$(curl -sLk "https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/main" | grep -Eo "(http|https)://camo.githubusercontent.com[a-zA-Z0-9./?=_%:-]*")
-          while IFS= read -r url; do curl -X PURGE "$url"; done <<< "$urls"
+          # The npm badges are in the READMEs of the packages, not in the root one.
+          pages=(
+            tree/main
+            tree/main/packages/bolt-s3
+            tree/main/packages/bolt-dynamodb
+          )
+          for page in "${pages[@]}"; do
+            # A page without images is not an error.
+            curl -sLk "https://github.com/${REPO_OWNER}/${REPO_NAME}/${page}" \
+              | grep -Eo "(http|https)://camo.githubusercontent.com[a-zA-Z0-9./?=_%:-]*" || true
+          done | sort -u | while IFS= read -r url; do
+            curl -X PURGE "$url"
+          done
