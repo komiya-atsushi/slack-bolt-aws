@@ -10,7 +10,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1014.0",
     "@codegenie/serverless-express": "^5.0.0",
-    "@k11i/bolt-dynamodb": "^1.0.3",
+    "@k11i/bolt-dynamodb": "*",
     "@slack/bolt": "^5.1.0"
   },
   "private": true
