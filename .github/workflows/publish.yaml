@@ -54,7 +54,7 @@ jobs:
       - run: git commit -m "v${{ steps.get-version-string.outputs.version }}"
       - run: git tag "v${{ steps.get-version-string.outputs.version }}"
       - run: npm ci
-      - run: make publish
+      - run: make stage-publish
       - run: git push
       - run: git push origin "v${{ steps.get-version-string.outputs.version }}"
 

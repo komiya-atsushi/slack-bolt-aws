@@ -20,10 +20,10 @@ compatibility-test:
 compatibility-test-lock:
 	node compatibility-test/update-lock.mts
 
-publish:
+stage-publish:
 	npm -w packages/bolt-s3 run build
-	npm -w packages/bolt-s3 publish --provenance --access public
+	npm -w packages/bolt-s3 stage publish --provenance --access public
 	npm -w packages/bolt-dynamodb run build
-	npm -w packages/bolt-dynamodb publish --provenance --access public
+	npm -w packages/bolt-dynamodb stage publish --provenance --access public
 
-.PHONY: clean test compatibility-test compatibility-test-lock publish
+.PHONY: clean test compatibility-test compatibility-test-lock stage-publish
